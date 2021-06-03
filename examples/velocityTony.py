@@ -36,10 +36,10 @@ from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.envs.VelocityAviary import VelocityAviary
 
 
-from stable_baselines3 import TD3 #PPO #A2C, TD3
+from stable_baselines3 import PPO #A2C, TD3
 from stable_baselines3.ppo import MlpPolicy
 #from stable_baselines3.a2c import MlpPolicy
-from stable_baselines3.td3 import MlpPolicy
+#from stable_baselines3.td3 import MlpPolicy
 from stable_baselines3.common.env_checker import check_env
 import ray
 from ray.tune import register_env
@@ -126,18 +126,18 @@ if __name__ == "__main__":
 
     #Start the model learning
     #policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], vf=[256, 256, 256, 256, 256, 256,256, 256, 256, 256, 256, 256])])
-    model = TD3(MlpPolicy,
+    model = PPO(MlpPolicy,
                 env,
                 verbose=1,
-                tensorboard_log="./td3_drone_tensorboard/",
+                tensorboard_log="./ppo_drone_tensorboard/",
                 #policy_kwargs=policy_kwargs
                 )
 
     #Deeper NN 
-    model = TD3.load("TD3", env=env) 
-    #model.learn(total_timesteps=4e5) # Typically not enough
-    #model.save("TD3")
-    #model = TD3.load("TD3", env=env)
+    #model = TD3.load("TD3", env=env) 
+    model.learn(total_timesteps=4e5) # Typically not enough
+    model.save("PPO")
+    model = PPO.load("PPO", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
                     num_drones=ARGS.num_drones

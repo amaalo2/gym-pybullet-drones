@@ -88,17 +88,17 @@ class VelocityAviary(BaseAviary):
     ################################################################################
 
     def _actionSpace(self):
-        """Returns the action space of the environment.
+        """Returns the action space of the environment, a turn angle.
 
         Returns
         -------
         ndarray
-            A Box(4,) where the entry is a numpy array
+            A Box(1,) where the entry is a numpy array
 
         """
         #### Action vector ######### X       Y       Z   fract. of MAX_SPEED_KMH
-        act_lower_bound = np.array([-1,     -1,     -1,                        0])
-        act_upper_bound = np.array([ 1,      1,      1,                        1])
+        act_lower_bound = np.array([-np.pi/2])
+        act_upper_bound = np.array([ np.pi/2])
         #return spaces.Dict({str(i): spaces.Box(low=act_lower_bound,
         #                                       high=act_upper_bound,
         #                                       dtype=np.float32
@@ -137,9 +137,9 @@ class VelocityAviary(BaseAviary):
         #Hard coded for only 1 intruder 
 
 
-        #observation vector           x         y     z         vx      vy       vz       relx    rely     relz     relvx    relvy    relvx  distance ownship to intruder     dist2goal
-        obs_lower_bound = np.array([-10.,       -10.,   0.,   -10,       -10,     -10,    -10,       -10,      -10,   -10,       -10,      -10,    0.,                               0.])
-        obs_upper_bound = np.array([ 10.,        10.,   20.,   10,        10,      10,     10,        10,       10,    10,        10,       10,    20,                              20])
+        ############################## doi      turn_angle         
+        obs_lower_bound = np.array([  0.,       -np.pi/2,       ])
+        obs_upper_bound = np.array([  20,        np.pi/2,       ])
 
         return spaces.Box(low=obs_lower_bound,
                           high=obs_upper_bound,
@@ -163,17 +163,17 @@ class VelocityAviary(BaseAviary):
         """
 
 
-
-
         rel_pos = self.pos[1,:]-self.pos[0,:]
         rel_vel = self.vel[1,:]-self.vel[0,:]
         doi = np.linalg.norm(rel_pos)
-        d2g = np.linalg.norm(self.GOAL_XYZ-self.pos[0,:])
+        #d2g = np.linalg.norm(self.GOAL_XYZ-self.pos[0,:])
+
+        _,turn_angle,_ = self.velocity_obstacle()
 
         #obs_vector = [ownship[0],ownship[1],ownship[2],ownship[10],ownship[11],ownship[12],rel_pos[0],rel_pos[0],rel_pos[1],rel_pos[2],rel_vel[0],rel_vel[1],rel_vel[2]]
 
-        obs_vector = np.hstack([self.pos[0,:],self.vel[0,:],rel_pos,rel_vel,doi,d2g])
-        return obs_vector.reshape(14)
+        obs_vector = np.hstack([doi,turn_angle])
+        return obs_vector.reshape(2)
 
         #adjacency_mat = self._getAdjacencyMatrix()
         #return {str(i): {"state": self._getDroneStateVector(i), "neighbors": adjacency_mat[i, :]} for i in range(self.NUM_DRONES)}
@@ -204,14 +204,11 @@ class VelocityAviary(BaseAviary):
         #TODO - Retreive the duration in self.
         
         INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/10 #/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
-
         speed_ratio = np.empty([self.NUM_DRONES,1])
         for i in range(self.NUM_DRONES):
             speed_ratio[i] =np.linalg.norm(INIT_VXVYVZ[i])/self.SPEED_LIMIT
-        
-
+            
         INIT_VXVYVZ = np.hstack((INIT_VXVYVZ,speed_ratio))
-
         adjency_mat = self._getAdjacencyMatrix()
 
         
@@ -220,7 +217,23 @@ class VelocityAviary(BaseAviary):
             #Keep only the intruder
             V_INTRUDER = np.delete(INIT_VXVYVZ,0,0)
             #Build action array : variable for the ownship (0th row) and fixed for the intruder (1 and onwards)
-            action = np.vstack((action,V_INTRUDER))
+
+
+            x = 0
+            def cpm(x):
+                ''' Takes a vector (np array) and its associated  cross product matrix '''
+                return np.array([[0,-x[2],x[1]],
+                [x[2],0,-x[0]],
+                [-x[1],x[0],0]])
+
+            n = np.array([0,-np.sin(x),np.cos(x)])
+            e = n.reshape(3,1)
+            R = e@np.transpose(e) + np.cos(action) * (np.identity(3)- e@np.transpose(e))+np.sin(action)*cpm(n)
+            vr = R @ (self.vel[0]) 
+
+
+            v_own  = np.hstack((vr,speed_ratio[0]))
+            action = np.vstack((v_own,V_INTRUDER))
 
         #Deterministic if the ownship is outside the neighborhood radius
         else:
@@ -292,7 +305,7 @@ class VelocityAviary(BaseAviary):
 
             d = np.linalg.norm(np.cross((self.INIT_XYZS[0,:]-self.pos[0,:]),dir_vector))/np.linalg.norm(dir_vector)
 
-            reward = - np.abs(self.rpy[0, 2]) + incentive + 15*np.dot(dir_vector,self.vel[0]) + bInside - d #+ bInside #+ 5/d2g #- 1/doi  # - d + 2*doi #- 10*np.linalg.norm(self.vel[0,:]-np.array([1,0,0]))#+ 10/d2g #- 1 /doi
+            reward = - np.abs(self.rpy[0, 2]) + np.dot(dir_vector,self.vel[0]) + 1/doi #+ bInside #+ 5/d2g #- 1/doi  # - d + 2*doi #- 10*np.linalg.norm(self.vel[0,:]-np.array([1,0,0]))#+ 10/d2g #- 1 /doi
             #np.dot(self.vel[0,:]/np.linalg.norm(self.vel[0,:]),dir_vector) - 1/doi - np.abs(self.rpy[0, 2]) + -10*(self.pos[0,2]-2)**2 + 10
 
             precision = 4
@@ -417,3 +430,398 @@ class VelocityAviary(BaseAviary):
 
 
 ################################################################################
+
+    def velocity_obstacle(self):
+        #TO DO : Put the all the vectors in the body frame.
+
+        def compute_elevation_and_azimuth(x1,x2):
+            #Find the relative position 
+            delta_x = x2[0]-x1[0]
+            delta_y = x2[1]-x1[1]
+            delta_z = x2[2]-x1[2] 
+
+            xy_norm=np.sqrt(delta_x ** 2 + delta_y ** 2)
+
+            theta = np.arctan(-delta_z/xy_norm) # because you align thumb with y
+            psi = np.arctan(delta_y/delta_x)
+
+            return theta,psi
+
+        def Ry(eulerTheta):
+            '''Canonical Rotation about y axis'''
+            R_eulerTheta = np.array([[np.cos(eulerTheta),0,-np.sin(eulerTheta)],
+            [0,1,0],
+            [np.sin(eulerTheta),0,np.cos(eulerTheta)]])
+            return R_eulerTheta
+
+        def Rx(eulerPhi): 
+            '''Canonical Rotation about the x axis'''
+            R_eulerPhi = np.array([[1,0,0],
+            [0,np.cos(eulerPhi),np.sin(eulerPhi)],
+            [0,-np.sin(eulerPhi),np.cos(eulerPhi)]])
+            return R_eulerPhi
+
+        def Rz(eulerPsi):
+            '''Canonical Rotation about the z axis'''
+            R_eulerPsi = np.array([[np.cos(eulerPsi),-np.sin(eulerPsi),0],
+            [np.sin(eulerPsi),np.cos(eulerPsi),0],
+            [0,0,1]])
+            return R_eulerPsi
+
+        def cpm(x):
+            ''' Takes a vector (np array) and its associated  cross product matrix '''
+            return np.array([[0,-x[2],x[1]],
+            [x[2],0,-x[0]],
+            [-x[1],x[0],0]])
+
+
+        def calculate_velocity_obstacle(rpz,theta,psi,d_oi):
+            d_vo =(d_oi ** 2 - rpz ** 2) / d_oi
+            r_vo = rpz*np.sqrt(d_oi**2-rpz**2)/d_oi
+            alpha_vo = np.arctan(r_vo/d_vo)
+            Dvo = d_vo*np.array([np.cos(theta)*np.cos(psi),np.cos(theta)*np.sin(psi),-np.sin(theta)]) 
+
+            return d_vo, r_vo, alpha_vo, Dvo
+
+
+        def collision_detector(x1,x2,v1,v2,alpha_vo,d_oi,d_avo):
+            flag = 0
+            Doi = x2-x1
+            ctheta = np.dot(v1-v2,Doi)/(np.linalg.norm(v1-v2)*d_oi)
+
+            if np.abs(ctheta)> np.abs(alpha_vo) and d_oi < d_avo and (np.dot(v2,Doi)<0):
+                flag =1
+            else:
+                flag = 0
+            
+            #print(f"flag:{flag}")
+            
+            return flag
+
+        def buffer_velocity(alpha_vo,d_vo,Dvo,v_int_i):
+
+            w = 2
+            delta_t = 0.1 
+            rvi = np.linalg.norm(v_int_i)*np.sqrt(2*(1-np.cos(w*delta_t)))
+            v_int_plus_b = v_int_i - rvi * Dvo/(d_vo*np.sin(alpha_vo))
+            Dvo_plus = Dvo + (v_int_i-v_int_plus_b)
+            dvo_plus = np.linalg.norm(Dvo_plus)
+
+            return v_int_plus_b, Dvo_plus, dvo_plus
+ 
+        def compute_vr(theta,psi,alpha_vo,x1,x2,v1,v2,flag,Dvo,d_vo,rvo):
+            vr = self.vel[0]
+            nVertices = 100
+            turn_angle = 0
+            x = 0
+            if flag:
+                
+                #Compute optimal plane angle (x is the plane angle)
+                x = np.arctan((np.cos(theta)*np.sin(psi))/np.sin(theta))
+                
+                if x<0:
+                    x = np.pi + x
+                #x = 0 
+
+                #Compute collision avoidance plane normal vector
+                n = np.array([0,-np.sin(x),np.cos(x)])
+
+
+                
+                
+                #Generate turn circle:
+                th =  np.linspace(-np.pi,np.pi,100)
+                xcircle = np.linalg.norm(v1)*np.cos(th)
+                ycircle = np.linalg.norm(v1)*np.sin(th)
+
+                #Compute conic section flags
+                bPlane = (np.abs(v2[2]*np.cos(x)-v2[1]*np.sin(x)))<1e-2
+                bHyperbola = np.abs(np.pi/2 - np.abs(np.arccos(np.dot(Dvo/d_vo,n))))<=alpha_vo
+
+                #print(f"bPlane{bPlane}, bHyperbola {bHyperbola}")
+
+
+                #Logic associated with each case
+                if bPlane:
+                    u = (x2-x1)/np.linalg.norm(x2-x1)
+                    e1 = v1/np.linalg.norm(v1) 
+                    matrix_sign_of_u = np.sign(Rx(x)@u)
+                    sign_of_u = matrix_sign_of_u[1]
+                    angleu = np.arccos(np.dot(u,e1))*sign_of_u
+
+                    if sign_of_u <0 :
+                        m_upper = np.tan(angleu - alpha_vo) 
+                        m_lower = np.tan(angleu + alpha_vo) 
+                    else:
+                        m_upper = np.tan(angleu - alpha_vo) 
+                        m_lower = np.tan(angleu + alpha_vo) 
+                    
+
+                    
+                    v2body = Rx(x)@v2
+                    px = v2body[0]
+                    py = v2body[1]
+                    v1norm = np.linalg.norm(v1)
+
+                    th2 = np.linspace(-np.pi,np.pi,nVertices)
+                    xcircle2 = np.cos(th) + x2[0]
+                    ycircle2 = np.sin(th) + x2[1]
+
+                    
+
+
+                elif bHyperbola:
+                    beta = np.linspace(0,2*np.pi,nVertices)
+                    a_c = np.zeros(nVertices)
+                    vx = np.zeros(nVertices)
+                    vy = np.zeros(nVertices)
+                    vz = np.zeros(nVertices)
+
+                    for c1 in range(nVertices):
+                        #a_c[c1] = (v2[2]*np.cos(x) - v2[1]*np.sin(x))/(np.cos(x)*(np.sin(theta) + np.tan(alpha_vo)*np.sin(beta[c1])*np.cos(theta)) - np.sin(x)*(np.cos(beta[c1])*np.cos(psi)*np.tan(alpha_vo) - np.cos(theta)*np.sin(psi) + np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(psi)*np.sin(theta)))
+                        #vx[c1] = (v2[0] + a_c[c1]*np.cos(psi)*np.cos(theta) + a_c[c1]*np.cos(beta[c1])*np.tan(alpha_vo)*np.sin(psi) - a_c[c1]*np.cos(psi)*np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(theta))
+                        #vy[c1]  = np.sin(x)*(v2[2] - a_c[c1]*np.sin(theta) - a_c[c1]*np.tan(alpha_vo)*np.sin(beta[c1])*np.cos(theta)) + np.cos(x)*(v2[1] + a_c[c1]*np.cos(theta)*np.sin(psi) - a_c[c1]*np.cos(beta[c1])*np.cos(psi)*np.tan(alpha_vo) - a_c[c1]*np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(psi)*np.sin(theta))
+
+
+                        a_c[c1] = (v2[2]*np.cos(x) - v2[1]*np.sin(x))/(np.cos(x)*(np.sin(theta) - np.tan(alpha_vo)*np.sin(beta[c1])*np.cos(theta)) + np.sin(x)*(np.cos(theta)*np.sin(psi) + np.cos(beta[c1])*np.cos(psi)*np.tan(alpha_vo) + np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(psi)*np.sin(theta)))           
+                        vx[c1]  = v2[0] + a_c[c1]*np.cos(psi)*np.cos(theta) - a_c[c1]*np.cos(beta[c1])*np.tan(alpha_vo)*np.sin(psi) + a_c[c1]*np.cos(psi)*np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(theta)
+                        vy[c1]  = np.sin(x)*(v2[2] - a_c[c1]*np.sin(theta) + a_c[c1]*np.tan(alpha_vo)*np.sin(beta[c1])*np.cos(theta)) + np.cos(x)*(v2[1] + a_c[c1]*np.cos(theta)*np.sin(psi) + a_c[c1]*np.cos(beta[c1])*np.cos(psi)*np.tan(alpha_vo) + a_c[c1]*np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(psi)*np.sin(theta))
+
+
+
+
+                    #Tan2020 parameters
+                    Avo = v2
+                    Avophi = Rx(x)@Avo
+                    zaphi = Avophi[2]
+
+                    A = d_vo*(np.cos(x)*np.sin(theta)-np.sin(x)*np.sin(psi)*np.cos(theta))+zaphi
+                    B = rvo*np.sin(x)*np.cos(psi)
+                    C = rvo*(np.sin(x)*np.sin(theta)*np.sin(psi)+np.cos(x)*np.cos(theta))
+
+                    t1 = np.arccos(A/np.sqrt(B**2+C**2))+np.arctan2(C,B)
+                    t2 = -np.arccos(-A/np.sqrt(B**2+C**2))+np.arctan2(C,B)
+
+                    if t2<t1:
+                        t2 = t2 + 2*np.pi
+
+                    idxt1=np.argmin(np.abs(beta-t1))
+                    idxt2=np.argmin(np.abs(beta-t2))
+
+
+                    x_arr1 = np.array([Avophi[0],vx[idxt1]])
+                    y_arr1 = np.array([Avophi[1],vy[idxt1]])
+                    line1 = np.polyfit(x_arr1,y_arr1,1)
+
+                    x_arr2 = np.array([Avophi[0],vx[idxt2]])
+                    y_arr2 = np.array([Avophi[1],vy[idxt2]])
+                    line2 = np.polyfit(x_arr2,y_arr2,1)
+
+
+                    #This will probably be missnamed
+                    m_upper = np.max([line1[0],line2[0]])
+                    m_lower = np.min([line1[0],line2[0]])
+
+
+                    v2body = Rx(x)@v2
+                    px = Avophi[0]
+                    py = Avophi[1]
+                    v1norm = np.linalg.norm(v1)
+
+                else: # Ellipse
+                    beta = np.linspace(0,2*np.pi,nVertices)
+                    a_c = np.zeros(nVertices)
+                    vx = np.zeros(nVertices)
+                    vy = np.zeros(nVertices)
+                    vz = np.zeros(nVertices)
+                    
+                    #Compute the ellipse
+                    for c1 in range(nVertices):
+                        #a_c[c1] = (v2[2]*np.cos(x) - v2[1]*np.sin(x))/(np.cos(x)*(np.sin(theta) + np.tan(alpha_vo)*np.sin(beta[c1])*np.cos(theta)) - np.sin(x)*(np.cos(beta[c1])*np.cos(psi)*np.tan(alpha_vo) - np.cos(theta)*np.sin(psi) + np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(psi)*np.sin(theta)))
+                        #vx[c1] = (v2[0] + a_c[c1]*np.cos(psi)*np.cos(theta) + a_c[c1]*np.cos(beta[c1])*np.tan(alpha_vo)*np.sin(psi) - a_c[c1]*np.cos(psi)*np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(theta))
+                        #vy[c1]  = np.sin(x)*(v2[2] - a_c[c1]*np.sin(theta) - a_c[c1]*np.tan(alpha_vo)*np.sin(beta[c1])*np.cos(theta)) + np.cos(x)*(v2[1] + a_c[c1]*np.cos(theta)*np.sin(psi) - a_c[c1]*np.cos(beta[c1])*np.cos(psi)*np.tan(alpha_vo) - a_c[c1]*np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(psi)*np.sin(theta))
+                        
+                        a_c[c1] = (v2[2]*np.cos(x) - v2[1]*np.sin(x))/(np.cos(x)*(np.sin(theta) - np.tan(alpha_vo)*np.sin(beta[c1])*np.cos(theta)) + np.sin(x)*(np.cos(theta)*np.sin(psi) + np.cos(beta[c1])*np.cos(psi)*np.tan(alpha_vo) + np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(psi)*np.sin(theta)))           
+                        vx[c1]  = v2[0] + a_c[c1]*np.cos(psi)*np.cos(theta) - a_c[c1]*np.cos(beta[c1])*np.tan(alpha_vo)*np.sin(psi) + a_c[c1]*np.cos(psi)*np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(theta)
+                        vy[c1]  = np.sin(x)*(v2[2] - a_c[c1]*np.sin(theta) + a_c[c1]*np.tan(alpha_vo)*np.sin(beta[c1])*np.cos(theta)) + np.cos(x)*(v2[1] + a_c[c1]*np.cos(theta)*np.sin(psi) + a_c[c1]*np.cos(beta[c1])*np.cos(psi)*np.tan(alpha_vo) + a_c[c1]*np.tan(alpha_vo)*np.sin(beta[c1])*np.sin(psi)*np.sin(theta))
+
+
+                    #Find the key points of the ellipse     
+                    xcenter = np.mean(vx)
+                    ycenter = np.mean(vy)
+
+                    center_coords = np.array([xcenter,ycenter])
+
+                    imax = np.argmax(np.sqrt((vx-xcenter)**2 + (vy-ycenter)**2))
+                    apex = np.array([vx[imax],vy[imax]])
+
+                    imax2 = np.argmax(np.sqrt((vx[imax]-vx)**2 + (vy[imax]-vy)**2))
+                    a2 = np.max(np.sqrt((vx[imax]-vx)**2 + (vy[imax]-vy)**2))
+                    a = a2/2
+
+                    xcenter = (vx[imax]+vx[imax2])/2
+                    ycenter = (vy[imax]+vy[imax2])/2
+
+
+                    b = np.min(np.sqrt((vx-xcenter)**2 + (vy-ycenter)**2))
+
+                    tilt_dir = (apex-center_coords)/np.linalg.norm(apex-center_coords)
+                    ksi = np.arctan(tilt_dir[1]/tilt_dir[0])
+
+
+                    #Compute the turn angle
+                    Pos_upper = nVertices//2 -1 #Make sure index is an int
+                    while (1/a**2)*((xcircle[Pos_upper]-xcenter)*np.cos(ksi)+(ycircle[Pos_upper]-ycenter)*np.sin(ksi))**2 + (1/b**2)*((xcircle[Pos_upper]-xcenter)*np.sin(ksi)-(ycircle[Pos_upper]-ycenter)*np.cos(ksi))**2 <=1.01 : 
+                        Pos_upper = Pos_upper+1  
+                        if xcircle[Pos_upper]<0 :
+                            Pos_upper = nVertices//2 -1 
+                            break
+
+                    
+                    Pos_lower = nVertices//2 -1  #Make sure index is an int
+                    while (1/a**2)*((xcircle[Pos_lower]-xcenter)*np.cos(ksi)+(ycircle[Pos_lower]-ycenter)*np.sin(ksi))**2 + (1/b**2)*((xcircle[Pos_lower]-xcenter)*np.sin(ksi)-(ycircle[Pos_lower]-ycenter)*np.cos(ksi))**2 <=1.01 : 
+                        Pos_lower = Pos_lower-1
+                        if xcircle[Pos_lower]<0 : 
+                            Pos_lower = nVertices//2-1
+                            break
+
+                    turn_upper = np.arctan(ycircle[Pos_upper]/xcircle[Pos_upper])
+                    turn_lower = np.arctan(ycircle[Pos_lower]/xcircle[Pos_lower])
+
+                    turn_angle_list = np.array([turn_upper,turn_lower])
+
+
+                    #Select the turn angle
+                    turn_angle_abs = np.min(np.abs(turn_angle_list))
+
+                    if np.abs(turn_lower) < 0.05 and np.abs(turn_upper) >0.05:
+                        turn_angle = turn_upper
+                    elif np.abs(turn_lower)>0.05 and np.abs(turn_upper)<0.05 :
+                        turn_angle = turn_lower
+                    elif np.abs(turn_lower)<0.05 and np.abs(turn_upper)<0.05 :
+                        turn_angle = 0
+                    else:
+                        if turn_angle_abs//np.abs(turn_upper) ==1:
+                            turn_angle = turn_upper
+                        else:
+                            turn_angle = turn_lower
+
+
+            if flag:
+                k=1 #gain 
+
+                if bHyperbola or bPlane:
+                  
+                    if (- m_upper**2*px**2 + m_upper**2*v1norm**2 + 2*m_upper*px*py - py**2 + v1norm**2)>=0:
+                        sol_upperx = np.array([  ((py + m_upper*(- m_upper**2*px**2 + m_upper**2*v1norm**2 + 2*m_upper*px*py - py**2 + v1norm**2)**(1/2) - m_upper*px)/(m_upper**2 + 1) - py + m_upper*px)/m_upper,
+                                        -(py - m_upper*px + (m_upper*(- m_upper**2*px**2 + m_upper**2*v1norm**2 + 2*m_upper*px*py - py**2 + v1norm**2)**(1/2) - py + m_upper*px)/(m_upper**2 + 1))/m_upper])
+
+                        sol_uppery = np.array([(py + m_upper*(- m_upper**2*px**2 + m_upper**2*v1norm**2 + 2*m_upper*px*py - py**2 + v1norm**2)**(1/2) - m_upper*px)/(m_upper**2 + 1),
+                                        -(m_upper*(- m_upper**2*px**2 + m_upper**2*v1norm**2 + 2*m_upper*px*py - py**2 + v1norm**2)**(1/2) - py + m_upper*px)/(m_upper**2 + 1)])
+
+                        max_x_upper = np.max(sol_upperx)
+                        i_upper = np.argmax(sol_upperx)
+                        turn_upper = 1.3*np.abs(np.arctan2(sol_uppery[i_upper],max_x_upper)) #upper is always ccw so 
+
+
+                    else:
+                        sol_upperx = [0,0]
+                        sol_uppery = [0,0]
+                        turn_upper = np.pi
+
+
+
+                    if (- m_lower**2*px**2 + m_lower**2*v1norm**2 + 2*m_lower*px*py - py**2 + v1norm**2) >= 0 :
+
+                        sol_lowerx = np.array([((py + m_lower*(- m_lower**2*px**2 + m_lower**2*v1norm**2 + 2*m_lower*px*py - py**2 + v1norm**2)**(1/2) - m_lower*px)/(m_lower**2 + 1) - py + m_lower*px)/m_lower,
+                                    -(py - m_lower*px + (m_lower*(- m_lower**2*px**2 + m_lower**2*v1norm**2 + 2*m_lower*px*py - py**2 + v1norm**2)**(1/2) - py + m_lower*px)/(m_lower**2 + 1))/m_lower])
+
+                        sol_lowery = np.array([ (py + m_lower*(- m_lower**2*px**2 + m_lower**2*v1norm**2 + 2*m_lower*px*py - py**2 + v1norm**2)**(1/2) - m_lower*px)/(m_lower**2 + 1),
+                                    -(m_lower*(- m_lower**2*px**2 + m_lower**2*v1norm**2 + 2*m_lower*px*py - py**2 + v1norm**2)**(1/2) - py + m_lower*px)/(m_lower**2 + 1)])
+
+                        max_x_lower = np.max(sol_lowerx)
+                        i_lower = np.argmax(sol_lowerx)
+                        turn_lower = 1.3*-np.abs(np.arctan2(sol_lowery[i_lower],max_x_lower)) #lower is always cw so positive
+
+                    else :
+                        sol_lowerx = [0,0]
+                        sol_lowery = [0,0]
+                        turn_lower = -np.pi
+                    
+                    #For imminent scenarios
+                    while (- m_upper**2*px**2 + m_upper**2*(k*v1norm)**2 + 2*m_upper*px*py - py**2 + (k*v1norm)**2)<0 or ((np.abs(turn_upper)>np.pi/2 or np.abs(turn_lower)>np.pi/2)) :
+                        k=k+1
+                        
+                        #Compute upper for upper turn
+                        sol_upperx = np.array([  ((py + m_upper*(- m_upper**2*px**2 + m_upper**2*(k*v1norm)**2 + 2*m_upper*px*py - py**2 + (k*v1norm)**2)**(1/2) - m_upper*px)/(m_upper**2 + 1) - py + m_upper*px)/m_upper,
+                                        -(py - m_upper*px + (m_upper*(- m_upper**2*px**2 + m_upper**2*(k*v1norm)**2 + 2*m_upper*px*py - py**2 + (k*v1norm)**2)**(1/2) - py + m_upper*px)/(m_upper**2 + 1))/m_upper])
+
+                        sol_uppery = np.array([(py + m_upper*(- m_upper**2*px**2 + m_upper**2*(k*v1norm)**2 + 2*m_upper*px*py - py**2 + (k*v1norm)**2)**(1/2) - m_upper*px)/(m_upper**2 + 1),
+                                        -(m_upper*(- m_upper**2*px**2 + m_upper**2*(k*v1norm)**2 + 2*m_upper*px*py - py**2 + (k*v1norm)**2)**(1/2) - py + m_upper*px)/(m_upper**2 + 1)])
+
+                        max_x_upper = np.max(sol_upperx)
+                        i_upper = np.argmax(sol_upperx)
+                        turn_upper = 1.3*np.abs((np.arctan(sol_uppery[i_upper]/max_x_upper))) 
+                        turn_upper = np.sign(turn_upper)*(np.abs(turn_upper) + np.pi/2)/2
+
+                        #Compute for lower turn
+                        sol_lowerx = np.array([((py + m_lower*(- m_lower**2*px**2 + m_lower**2*(k*v1norm)**2 + 2*m_lower*px*py - py**2 + (k*v1norm)**2)**(1/2) - m_lower*px)/(m_lower**2 + 1) - py + m_lower*px)/m_lower,
+                                    -(py - m_lower*px + (m_lower*(- m_lower**2*px**2 + m_lower**2*(k*v1norm)**2 + 2*m_lower*px*py - py**2 + (k*v1norm)**2)**(1/2) - py + m_lower*px)/(m_lower**2 + 1))/m_lower])
+
+                        sol_lowery = np.array([ (py + m_lower*(- m_lower**2*px**2 + m_lower**2*(k*v1norm)**2 + 2*m_lower*px*py - py**2 + (k*v1norm)**2)**(1/2) - m_lower*px)/(m_lower**2 + 1),
+                                    -(m_lower*(- m_lower**2*px**2 + m_lower**2*(k*v1norm)**2 + 2*m_lower*px*py - py**2 + (k*v1norm)**2)**(1/2) - py + m_lower*px)/(m_lower**2 + 1)])
+                        
+                        max_x_lower = np.max(sol_lowerx)
+                        i_lower = np.argmax(sol_lowerx)
+                        turn_lower = -1.3*np.abs((np.arctan(sol_lowery[i_lower]/max_x_lower))) #lower is always cw so positive
+                        turn_lower = np.sign(turn_lower)*(np.abs(turn_lower) + np.pi/2)/2
+
+            if flag:
+                
+                if bPlane or bHyperbola:
+                    #Select the turn angle
+                    turn_angle_list = np.array([turn_upper,turn_lower])
+                    turn_angle_abs = np.min(np.abs(turn_angle_list))
+
+                    if turn_angle_abs//np.abs(turn_upper) ==1:
+                        turn_angle = np.abs(turn_upper)
+                    else:
+                        turn_angle = -np.abs(turn_lower)
+
+                    #print(f"sol_upperx {sol_upperx}, sol_uppery {sol_uppery}, sol_lowerx{sol_lowerx}, sol_lowery{sol_lowery}")
+                
+
+                #print(f"turn_upper {turn_upper}, turn_lower {turn_lower}, plane {x}, turn_angle {turn_angle}")
+                #print(f"bPlane{bPlane} bHyperbola {bHyperbola} gain k {k}")
+                #turn_angle = 0
+                e = n.reshape(3,1)
+                R = e@np.transpose(e) + np.cos(turn_angle) * (np.identity(3)- e@np.transpose(e))+np.sin(turn_angle)*cpm(n)
+                #pass
+                vr = R @ (k*v1) 
+                #print(f"vr : {vr}")
+                
+
+            return vr, turn_angle,x
+
+        
+
+        x_own_i = self.pos[0]
+        v_own_i = self.vel[0]
+
+        x_int_i = self.pos[1]
+        v_int_i = self.vel[1]
+
+        rpz = self.PROTECTED_RADIUS
+        d_avo = self.NEIGHBOURHOOD_RADIUS
+
+        d_oi = np.linalg.norm(x_own_i-x_int_i)
+
+
+        theta,psi = compute_elevation_and_azimuth(x_own_i,x_int_i)
+        d_vo, r_vo, alpha_vo, Dvo = calculate_velocity_obstacle(rpz,theta,psi,d_oi)
+        flag = collision_detector(x_own_i,x_int_i,v_own_i,v_int_i,alpha_vo,d_oi,d_avo)
+        v_int_i,Dvo,d_vo = buffer_velocity(alpha_vo,d_vo,Dvo,v_int_i)
+        vr_b,turn_angle,x = compute_vr(theta,psi,alpha_vo,x_own_i,x_int_i,v_own_i,v_int_i,flag,Dvo,d_vo,r_vo)
+        #v_target = vr_b
+
+        return vr_b,turn_angle,x
