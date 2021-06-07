@@ -125,19 +125,19 @@ if __name__ == "__main__":
     START = time.time()
 
     #Start the model learning
-    #policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], vf=[256, 256, 256, 256, 256, 256,256, 256, 256, 256, 256, 256])])
+    policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], vf=[256, 256, 256, 256, 256, 256,256, 256, 256, 256, 256, 256])])
     model = PPO(MlpPolicy,
                 env,
                 verbose=1,
                 tensorboard_log="./ppo_drone_tensorboard/",
-                #policy_kwargs=policy_kwargs
+                policy_kwargs=policy_kwargs
                 )
 
     #Deeper NN 
-    #model = TD3.load("TD3", env=env) 
-    model.learn(total_timesteps=4e5) # Typically not enough
-    model.save("PPO")
-    model = PPO.load("PPO", env=env)
+    #model = PPO.load("PPO", env=env)
+    #model.learn(total_timesteps=4e5) # Typically not enough
+    #model.save("PPO")
+    model = PPO.load("PPO_BEST_By_FAR", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
                     num_drones=ARGS.num_drones
@@ -165,57 +165,3 @@ if __name__ == "__main__":
             obs = env.reset()
     env.close()
     logger.plot()
-
-
-    '''
-    for i in range(0, int(ARGS.duration_sec*env.SIM_FREQ), AGGR_PHY_STEPS):
-
-
-        ############################################################
-        # for j in range(3): env._showDroneLocalAxes(j)
-
-        #### Step the simulation ###################################
-        obs, reward, done, info = env.step(action)
-
-
-
-        #### Compute control at the desired frequency ##############
-        if i%CTRL_EVERY_N_STEPS == 0:
-
-            #### Compute control for the current way point #############
-            for j in range(ARGS.num_drones):
-                action[str(j)] = TARGET_VEL[j, wp_counters[j], :] 
-
-            #### Go to the next way point and loop #####################
-            for j in range(4): 
-                wp_counters[j] = wp_counters[j] + 1 if wp_counters[j] < (NUM_WP-1) else 0
-
-        #### Log the simulation ####################################
-        for j in range(ARGS.num_drones):
-            logger.log(drone=j,
-                       timestamp=i/env.SIM_FREQ,
-                       state= obs[str(j)]["state"],
-                       control=np.hstack([TARGET_VEL[j, wp_counters[j], 0:3], np.zeros(9)])
-                       )
-
-        #### Printout ##############################################
-        if i%env.SIM_FREQ == 0:
-            env.render()
-
-        ####Stop the simulation if the done flag is true############
-        if done:
-            print('Done!')
-            env.reset()
-
-        #### Sync the simulation ###################################
-        if ARGS.gui:
-            sync(i, START, env.TIMESTEP)
-
-    #### Close the environment #################################
-    env.close()
-
-    #### Plot the simulation results ###########################
-    #logger.save_as_csv("vel") # Optional CSV save
-    if ARGS.plot:
-        logger.plot()
-    '''
