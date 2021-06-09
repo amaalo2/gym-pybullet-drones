@@ -134,10 +134,11 @@ if __name__ == "__main__":
                 )
 
     #Deeper NN 
-    #model = PPO.load("PPO", env=env)
-    #model.learn(total_timesteps=4e5) # Typically not enough
-    #model.save("PPO")
-    model = PPO.load("PPO_BEST_By_FAR", env=env)
+    model = PPO.load("PPO", env=env)
+    model.learn(total_timesteps=4e5) # Typically not enough
+    model.save("PPO")
+    model = PPO.load("PPO", env=env)
+    #model = PPO.load("PPO_BEST_By_FAR", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
                     num_drones=ARGS.num_drones
@@ -145,10 +146,14 @@ if __name__ == "__main__":
     obs = env.reset()
     start = time.time()
     for i in range(ARGS.duration_sec*env.SIM_FREQ):
-        action, _states = model.predict(obs,
-                                        deterministic=True,
-                                        )
+        if obs[-1] < 5 : 
+            action, _states = model.predict(obs,
+                                            deterministic=True,
+                                            )
+        else:
+            action = 30 #No Turn
 
+        #print(f"action {action}")
         obs, reward, done, info = env.step(action)
 
         for j in range(ARGS.num_drones):

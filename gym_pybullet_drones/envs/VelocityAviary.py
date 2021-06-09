@@ -97,17 +97,22 @@ class VelocityAviary(BaseAviary):
 
         """
         #### Action vector ######### X       Y       Z   fract. of MAX_SPEED_KMH
-        act_lower_bound = np.array([-np.pi/4])
-        act_upper_bound = np.array([ np.pi/4])
+        #act_lower_bound = np.array([-np.pi/4])
+        #act_upper_bound = np.array([ np.pi/4])
         #return spaces.Dict({str(i): spaces.Box(low=act_lower_bound,
         #                                       high=act_upper_bound,
         #                                       dtype=np.float32
         #                                       ) for i in range(self.NUM_DRONES)})
 
-        return spaces.Box(low=act_lower_bound,
-                          high=act_upper_bound,
-                          dtype=np.float32)
+        #return spaces.Box(low=act_lower_bound,
+        #                  high=act_upper_bound,
+        #                  dtype=np.float32)
     
+
+        #actions = np.array([i for i in range(-90,93,3)])*np.pi/180
+
+        return spaces.Discrete(61)
+
     ################################################################################
 
     def _observationSpace(self):
@@ -211,6 +216,8 @@ class VelocityAviary(BaseAviary):
         INIT_VXVYVZ2 = np.hstack((INIT_VXVYVZ,speed_ratio))
         adjency_mat = self._getAdjacencyMatrix()
 
+        liste = np.array([i for i in range(-90,93,3)])*np
+        action = liste[action]
         #Picks the action from the RL agent if the intruder is within the neighborhood of the ownship
         if int(adjency_mat[0][1])>0 and self.collision_detector() and np.linalg.norm(self.vel[0]-INIT_VXVYVZ[0])<1e-2 :
             V_INTRUDER = np.delete(INIT_VXVYVZ2,0,0)
@@ -235,6 +242,7 @@ class VelocityAviary(BaseAviary):
             theta,psi = compute_elevation_and_azimuth(self.pos[0],self.pos[1])
 
             #Compute optimal plane 
+            _, self.turn_upper,self.turn_lower, _, = self.velocity_obstacle()
             x = np.arctan((np.cos(theta)*np.sin(psi))/np.sin(theta))
             if x<0:
                 x = np.pi + x
@@ -827,7 +835,7 @@ class VelocityAviary(BaseAviary):
                 #print(f"vr : {vr}")
                 
 
-            return vr, turn_angle,x
+            return vr, turn_upper,_turn_lower, x
 
         
 
@@ -847,7 +855,7 @@ class VelocityAviary(BaseAviary):
         d_vo, r_vo, alpha_vo, Dvo = calculate_velocity_obstacle(rpz,theta,psi,d_oi)
         flag = collision_detector(x_own_i,x_int_i,v_own_i,v_int_i,alpha_vo,d_oi,d_avo)
         v_int_i,Dvo,d_vo = buffer_velocity(alpha_vo,d_vo,Dvo,v_int_i)
-        vr_b,turn_angle, x = compute_vr(theta,psi,alpha_vo,x_own_i,x_int_i,v_own_i,v_int_i,flag,Dvo,d_vo,r_vo)
+        vr_b,turn_upper,_turn_lower, x = compute_vr(theta,psi,alpha_vo,x_own_i,x_int_i,v_own_i,v_int_i,flag,Dvo,d_vo,r_vo)
         #v_target = vr_b
 
-        return vr_b,turn_angle, x
+        return vr_b,turn_upper,_turn_lower, x
