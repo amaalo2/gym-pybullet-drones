@@ -363,6 +363,20 @@ class Logger(object):
             for i in range(t.size):
                 Doi[j,i] =  np.linalg.norm(self.states[0,0:3,i]-self.states[j,0:3,i])
 
+        #Compute the turn_angle for the ownship, it's hardcoded
+        Turn_Angle = np.empty((1,t.size))
+        dir_vector = np.array([1,0,0]) #initial dir of the ownship
+
+        
+        for i in range(t.size):
+            n = np.cross(dir_vector,self.states[0,3:6,i]/np.linalg.norm(self.states[0,3:6,i]))
+            if n[-1]>0:
+                turn_angle_sign = 1
+            else:
+                turn_angle_sign = -1
+            Turn_Angle[0,i] = turn_angle_sign * np.arccos(np.dot(dir_vector,self.states[0,3:6,i]/np.linalg.norm(self.states[0,3:6,i]))) * 180/np.pi
+            
+        
         row = 10
 
         col=0
@@ -372,10 +386,10 @@ class Logger(object):
         axs[row, col].set_ylabel('Doi (m)')
 
         col=1
-        for j in range(self.NUM_DRONES):
-            axs[row, col].plot(t, Doi[j, :], label="drone_"+str(j))
+        for j in range(1):
+            axs[row, col].plot(t, Turn_Angle[j, :], label="drone_"+str(j))
         axs[row, col].set_xlabel('time')
-        axs[row, col].set_ylabel('Doi (m)')
+        axs[row, col].set_ylabel('Turn Angle (Deg)')
 
 
         #### Drawing options #######################################

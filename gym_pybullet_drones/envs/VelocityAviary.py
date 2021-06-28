@@ -97,21 +97,21 @@ class VelocityAviary(BaseAviary):
 
         """
         #### Action vector ######### X       Y       Z   fract. of MAX_SPEED_KMH
-        #act_lower_bound = np.array([-np.pi/4])
-        #act_upper_bound = np.array([ np.pi/4])
+        act_lower_bound = np.array([-np.pi/2])
+        act_upper_bound = np.array([ np.pi/2])
         #return spaces.Dict({str(i): spaces.Box(low=act_lower_bound,
         #                                       high=act_upper_bound,
         #                                       dtype=np.float32
         #                                       ) for i in range(self.NUM_DRONES)})
 
-        #return spaces.Box(low=act_lower_bound,
-        #                  high=act_upper_bound,
-        #                  dtype=np.float32)
+        return spaces.Box(low=act_lower_bound,
+                          high=act_upper_bound,
+                          dtype=np.float32)
     
 
         #actions = np.array([i for i in range(-90,93,3)])*np.pi/180
 
-        return spaces.Discrete(61)
+        #return spaces.Discrete(61)
 
     ################################################################################
 
@@ -146,9 +146,9 @@ class VelocityAviary(BaseAviary):
         obs_upper_bound = np.array([ 10.,        10.,   20.,   10,        10,      10,     10,        10,       10,    10,        10,       10,    20,])
 
 
-        ############################## doi      turn_angle         
-        #obs_lower_bound = np.array([  0.,       -np.pi/2,       ])
-        #obs_upper_bound = np.array([  20,        np.pi/2,       ])
+        ############################## doi      turn_upper, turn_lower        
+        #obs_lower_bound = np.array([  0.,       -np.pi/2,   -np.pi/2])
+        #obs_upper_bound = np.array([  20,       np.pi/2,     np.pi/2  ])
 
         return spaces.Box(low=obs_lower_bound,
                           high=obs_upper_bound,
@@ -176,8 +176,23 @@ class VelocityAviary(BaseAviary):
         rel_vel = self.vel[1,:]-self.vel[0,:]
         doi = np.linalg.norm(rel_pos)
 
+        INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/10
+        turn_angle = np.abs(np.arccos(np.dot(INIT_VXVYVZ[0]/np.linalg.norm(INIT_VXVYVZ[0]),self.vel[0]/np.linalg.norm(self.vel[0]))))
 
-        obs_vector = np.hstack([self.pos[0,:],self.vel[0,:],rel_pos,rel_vel,doi])
+        if hasattr(self, 'turn_upper'):
+            pass
+        else:
+            self.turn_upper = 0
+
+        if hasattr(self, 'turn_lower'):
+            pass
+        else:
+            self.turn_lower = 0
+
+        #obs_vector = np.hstack([doi, self.turn_upper, self.turn_lower])
+        #return obs_vector.reshape(3)
+
+        obs_vector = np.hstack([self.pos[0,:],self.vel[0,:],self.pos[1,:],self.vel[1,:],doi])
         return obs_vector.reshape(13)
 
         #adjacency_mat = self._getAdjacencyMatrix()
@@ -216,8 +231,8 @@ class VelocityAviary(BaseAviary):
         INIT_VXVYVZ2 = np.hstack((INIT_VXVYVZ,speed_ratio))
         adjency_mat = self._getAdjacencyMatrix()
 
-        liste = np.array([i for i in range(-90,93,3)])*np
-        action = liste[action]
+        #liste = np.array([i for i in range(-90,93,3)])*np.pi/180
+        #action = liste[action]
         #Picks the action from the RL agent if the intruder is within the neighborhood of the ownship
         if int(adjency_mat[0][1])>0 and self.collision_detector() and np.linalg.norm(self.vel[0]-INIT_VXVYVZ[0])<1e-2 :
             V_INTRUDER = np.delete(INIT_VXVYVZ2,0,0)
@@ -251,6 +266,7 @@ class VelocityAviary(BaseAviary):
             R = e@np.transpose(e) + np.cos(action) * (np.identity(3)- e@np.transpose(e))+np.sin(action)*cpm(n)
             vr = R @ (self.vel[0]) 
             self.vr = vr
+            self.turn_angle = action #store the turn angle before it gets overwritten 
             v_own  = np.hstack((vr,speed_ratio[0]))
             action = np.vstack((v_own,V_INTRUDER))
         
@@ -299,14 +315,15 @@ class VelocityAviary(BaseAviary):
         """
         
         adjency_mat = self._getAdjacencyMatrix()
+        INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/10 #/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
         
-        if np.linalg.norm(self.pos[0]-self.pos[1])< (1.4 * self.PROTECTED_RADIUS):
+        if np.linalg.norm(self.pos[0]-self.pos[1])< (1.05 * self.PROTECTED_RADIUS):
             bInside = -100
         else:
             bInside = 0
 
 
-        if int(adjency_mat[0][1])>0 and self.collision_detector() :
+        if int(adjency_mat[0][1])>0 and self.collision_detector()  and np.linalg.norm(self.vel[0]-INIT_VXVYVZ[0])<1e-2 and hasattr(self,'vr') or np.linalg.norm(self.pos[0]-self.pos[1])< (1.05 * self.PROTECTED_RADIUS):
 
             rel_pos = self.pos[1,:]-self.pos[0,:]
             doi = np.linalg.norm(rel_pos)
@@ -321,36 +338,86 @@ class VelocityAviary(BaseAviary):
                 incentive = 0
             
             
-            if np.dot(self.vel[1],self.pos[1]-self.pos[0])>0:
-                goodjob = 5
-            else:
-                goodjob = 0
-            
+            #if np.dot(self.vel[1],self.pos[1]-self.pos[0])>0:
+            #    goodjob = 5
+            #else:
+            #    goodjob = 0
+
+
+            rad2deg = 180/np.pi
 
 
             
 
             dir_vector = (self.GOAL_XYZ-self.INIT_XYZS[0,:])/np.linalg.norm(self.GOAL_XYZ-self.INIT_XYZS[0,:])
-
-            if 1/np.abs(np.arccos(np.dot(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0])))) > 10:
-                clipped_angle = 1.0
+            n = np.cross(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0]))
+            
+            if n[-1]>0:
+                turn_angle_sign = 1
             else:
-                clipped_angle = 0.1/np.abs(np.arccos(np.dot(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0]))))
+                turn_angle_sign = -1
 
-            #_,turn_angle,_ = self.velocity_obstacle()
+            turn_angle = turn_angle_sign * self.turn_angle[0] #* np.arccos(np.dot(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0])))
+            
+
+            #if 1/turn_angle > 10:
+            #    clipped_angle = 1.0
+            #else:
+            #    clipped_angle = 0.1/turn_angle
+
+            #_,turn_upper, turn_lower,_ = self.velocity_obstacle()
 
             d = np.linalg.norm(np.cross((self.INIT_XYZS[0,:]-self.pos[0,:]),dir_vector))/np.linalg.norm(dir_vector)
 
+
+            angle_penalty = 0
+            awards_turn_angle = 0
+
+            if turn_angle_sign>0:
+                if hasattr(self, 'turn_upper'):
+                    if turn_angle < self.turn_upper:
+                        angle_penalty += -1.0
+                    elif  np.abs(self.turn_upper)*rad2deg <  np.abs(turn_angle)*rad2deg < np.abs(self.turn_upper)*rad2deg + 5  :
+                        awards_turn_angle = 8.
+                    elif  np.abs(self.turn_upper)*rad2deg +5 <  np.abs(turn_angle)*rad2deg < np.abs(self.turn_upper)*rad2deg + 10  :
+                        awards_turn_angle = 4.
+                    elif  np.abs(self.turn_upper)*rad2deg +10 <  np.abs(turn_angle)*rad2deg < np.abs(self.turn_upper)*rad2deg + 15  :
+                        awards_turn_angle = 2.
+                    elif  np.abs(self.turn_upper)*rad2deg +15 <  np.abs(turn_angle)*rad2deg < np.abs(self.turn_upper)*rad2deg + 20  :
+                        awards_turn_angle = 1.
+                    else:
+                        awards_turn_angle = 0.
+            else:
+                if hasattr(self, 'turn_lower'):
+                    if turn_angle<0 and turn_angle > self.turn_lower:
+                        angle_penalty += -1.
+                    elif  np.abs(self.turn_lower)*rad2deg <  np.abs(turn_angle)*rad2deg < np.abs(self.turn_lower)*rad2deg + 5  :
+                        awards_turn_angle = 8. 
+                    elif  np.abs(self.turn_lower)*rad2deg +5 <  np.abs(turn_angle)*rad2deg < np.abs(self.turn_lower)*rad2deg + 10  :
+                        awards_turn_angle = 4.
+                    elif  np.abs(self.turn_lower)*rad2deg +10 <  np.abs(turn_angle)*rad2deg < np.abs(self.turn_lower)*rad2deg + 15  :
+                        awards_turn_angle = 2.
+                    elif  np.abs(self.turn_lower)*rad2deg +15 <  np.abs(turn_angle)*rad2deg < np.abs(self.turn_lower)*rad2deg + 20  :
+                        awards_turn_angle = 1.
+                    else:
+                        awards_turn_angle = 0.
+
+    
+
+
+
             
-            reward  = clipped_angle + bInside + goodjob
+            reward  = np.abs((1/self.turn_angle[0])) + bInside #awards_turn_angle +  bInside + angle_penalty
             #reward = - np.abs(self.rpy[0, 2]) + np.dot(dir_vector,self.vel[0]) + incentive + bInside #+ 5/d2g #- 1/doi  # - d + 2*doi #- 10*np.linalg.norm(self.vel[0,:]-np.array([1,0,0]))#+ 10/d2g #- 1 /doi
             #np.dot(self.vel[0,:]/np.linalg.norm(self.vel[0,:]),dir_vector) - 1/doi - np.abs(self.rpy[0, 2]) + -10*(self.pos[0,2]-2)**2 + 10
 
             precision = 4
             #print(f"TotalReward {reward:.{precision}} \t d {10*d:.{precision}} \t yaw {np.abs(self.rpy[0, 2]):.{precision}} \t Incentive {incentive} \tProj: {15*np.dot(dir_vector,self.vel[0]):.{precision}} \t VelOwnY {self.vel[0,1]:.{precision}} \t VelOwnY {self.vel[0,2]:.{precision}}  \t VelIntY{self.vel[1,1]:.{precision}} \t  VelIntZ{self.vel[1,2]:.{precision}}")
-            print(f"TotalReward {reward:.{precision}}, Turn_Angle_deg {180/np.pi * np.arccos(np.dot(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0]))):.{precision}}, bInside {bInside}")
-            return reward 
-
+            #print(f"TotalReward {reward}, Turn_Angle_deg {rad2deg*turn_angle:.{precision}}, bInside {bInside}, Turn_upper {self.turn_upper*rad2deg:.{precision}}, Turn_lower {self.turn_lower*rad2deg:.{precision}}")
+            print(f"TotalReward {reward}, Turn_Angle_deg {rad2deg*turn_angle:.{precision}}, bInside {bInside}")
+            
+            return reward
+        
         else:
             return 0
 
@@ -393,8 +460,25 @@ class VelocityAviary(BaseAviary):
             print('Outside the domain')
             return True
 
-        #Never go backwards
-        #if self.vel[0,0]<0:
+
+
+        dir_vector = (self.GOAL_XYZ-self.INIT_XYZS[0,:])/np.linalg.norm(self.GOAL_XYZ-self.INIT_XYZS[0,:])
+        n = np.cross(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0]))
+        if n[-1]>0:
+            turn_angle_sign = 1
+        else:
+            turn_angle_sign = -1
+        turn_angle = turn_angle_sign * np.arccos(np.dot(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0])))
+
+        #if np.linalg.norm(self.pos[0]-self.pos[1])<4:
+        #    if np.abs(turn_angle) < np.abs(self.turn_upper) or np.abs(turn_angle) < np.abs(self.turn_lower):
+        #        return True
+
+
+        #if turn_angle > 0 and turn_angle > (self.turn_upper + np.pi/2)/2:
+        #    return True
+        #
+        #if turn_angle < 0 and turn_angle < (self.turn_lower - np.pi/2)/2:
         #    return True
 
         #Check for the length of the simulation
@@ -403,6 +487,9 @@ class VelocityAviary(BaseAviary):
             return True
         else:
             return False
+
+        
+        
 
     ################################################################################
     
@@ -835,7 +922,7 @@ class VelocityAviary(BaseAviary):
                 #print(f"vr : {vr}")
                 
 
-            return vr, turn_upper,_turn_lower, x
+            return vr, turn_upper, turn_lower, x
 
         
 
@@ -855,7 +942,7 @@ class VelocityAviary(BaseAviary):
         d_vo, r_vo, alpha_vo, Dvo = calculate_velocity_obstacle(rpz,theta,psi,d_oi)
         flag = collision_detector(x_own_i,x_int_i,v_own_i,v_int_i,alpha_vo,d_oi,d_avo)
         v_int_i,Dvo,d_vo = buffer_velocity(alpha_vo,d_vo,Dvo,v_int_i)
-        vr_b,turn_upper,_turn_lower, x = compute_vr(theta,psi,alpha_vo,x_own_i,x_int_i,v_own_i,v_int_i,flag,Dvo,d_vo,r_vo)
+        vr_b,turn_upper, turn_lower, x = compute_vr(theta,psi,alpha_vo,x_own_i,x_int_i,v_own_i,v_int_i,flag,Dvo,d_vo,r_vo)
         #v_target = vr_b
 
-        return vr_b,turn_upper,_turn_lower, x
+        return vr_b,turn_upper, turn_lower, x

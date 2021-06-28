@@ -40,7 +40,8 @@ from stable_baselines3 import PPO #A2C, TD3
 from stable_baselines3.ppo import MlpPolicy
 #from stable_baselines3.a2c import MlpPolicy
 #from stable_baselines3.td3 import MlpPolicy
-from stable_baselines3.common.env_checker import check_env
+#from stable_baselines.common.policies import MlpLstmPolicy
+from stable_baselines.common.env_checker import check_env
 import ray
 from ray.tune import register_env
 from ray.rllib.agents import ppo
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     parser.add_argument('--obstacles',          default=False,      type=str2bool,      help='Whether to add obstacles to the environment (default: True)', metavar='')
     parser.add_argument('--simulation_freq_hz', default=240,        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=15,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
+    parser.add_argument('--duration_sec',       default=5,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     ARGS = parser.parse_args()
 
@@ -125,7 +126,7 @@ if __name__ == "__main__":
     START = time.time()
 
     #Start the model learning
-    policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], vf=[256, 256, 256, 256, 256, 256,256, 256, 256, 256, 256, 256])])
+    policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], vf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])])
     model = PPO(MlpPolicy,
                 env,
                 verbose=1,
@@ -135,9 +136,9 @@ if __name__ == "__main__":
 
     #Deeper NN 
     model = PPO.load("PPO", env=env)
-    model.learn(total_timesteps=4e5) # Typically not enough
+    model.learn(total_timesteps=400_000) # Typically not enough
     model.save("PPO")
-    model = PPO.load("PPO", env=env)
+    #model = PPO.load("PPO", env=env)
     #model = PPO.load("PPO_BEST_By_FAR", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
