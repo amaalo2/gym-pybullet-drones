@@ -36,11 +36,13 @@ from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.envs.VelocityAviary import VelocityAviary
 
 
-from stable_baselines3 import PPO #A2C, TD3
+from stable_baselines3 import  A2C, PPO, TD3
 from stable_baselines3.ppo import MlpPolicy
 #from stable_baselines3.a2c import MlpPolicy
 #from stable_baselines3.td3 import MlpPolicy
+#from stable_baselines import  PPO2
 #from stable_baselines.common.policies import MlpLstmPolicy
+#from stable_baselines.common import make_vec_env
 from stable_baselines.common.env_checker import check_env
 import ray
 from ray.tune import register_env
@@ -62,6 +64,7 @@ if __name__ == "__main__":
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
     parser.add_argument('--duration_sec',       default=5,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
+    parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
     ARGS = parser.parse_args()
 
     #### Initialize the simulation #############################
@@ -126,7 +129,8 @@ if __name__ == "__main__":
     START = time.time()
 
     #Start the model learning
-    policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], vf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])])
+    policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])])
+    #policy_kwargs = dict(net_arch=dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])) #For TD3, SAC, DDPG                    
     model = PPO(MlpPolicy,
                 env,
                 verbose=1,
@@ -135,10 +139,10 @@ if __name__ == "__main__":
                 )
 
     #Deeper NN 
-    model = PPO.load("PPO", env=env)
-    model.learn(total_timesteps=400_000) # Typically not enough
-    model.save("PPO")
     #model = PPO.load("PPO", env=env)
+    #model.learn(total_timesteps=100_000) # Typically not enough
+    #model.save("PPO")
+    model = PPO.load("PPO", env=env)
     #model = PPO.load("PPO_BEST_By_FAR", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
@@ -152,7 +156,7 @@ if __name__ == "__main__":
                                             deterministic=True,
                                             )
         else:
-            action = 30 #No Turn
+            action = 0 #No Turn
 
         #print(f"action {action}")
         obs, reward, done, info = env.step(action)

@@ -231,10 +231,7 @@ class VelocityAviary(BaseAviary):
         INIT_VXVYVZ2 = np.hstack((INIT_VXVYVZ,speed_ratio))
         adjency_mat = self._getAdjacencyMatrix()
 
-        #liste = np.array([i for i in range(-90,93,3)])*np.pi/180
-        #action = liste[action]
-        #Picks the action from the RL agent if the intruder is within the neighborhood of the ownship
-        if int(adjency_mat[0][1])>0 and self.collision_detector() and np.linalg.norm(self.vel[0]-INIT_VXVYVZ[0])<1e-2 :
+        if int(adjency_mat[0][1])>0 and self.collision_detector() and np.linalg.norm(self.vel[0]-self.target_vel)<1e-2 :
             V_INTRUDER = np.delete(INIT_VXVYVZ2,0,0)
 
             def compute_elevation_and_azimuth(x1,x2):
@@ -257,7 +254,7 @@ class VelocityAviary(BaseAviary):
             theta,psi = compute_elevation_and_azimuth(self.pos[0],self.pos[1])
 
             #Compute optimal plane 
-            _, self.turn_upper,self.turn_lower, _, = self.velocity_obstacle()
+            #_, self.turn_upper,self.turn_lower, _, = self.velocity_obstacle()
             x = np.arctan((np.cos(theta)*np.sin(psi))/np.sin(theta))
             if x<0:
                 x = np.pi + x
@@ -266,6 +263,7 @@ class VelocityAviary(BaseAviary):
             R = e@np.transpose(e) + np.cos(action) * (np.identity(3)- e@np.transpose(e))+np.sin(action)*cpm(n)
             vr = R @ (self.vel[0]) 
             self.vr = vr
+            self.target_vel = vr
             self.turn_angle = action #store the turn angle before it gets overwritten 
             v_own  = np.hstack((vr,speed_ratio[0]))
             action = np.vstack((v_own,V_INTRUDER))
@@ -274,8 +272,7 @@ class VelocityAviary(BaseAviary):
             action = np.hstack((np.vstack((INIT_VXVYVZ[0],self.vel[1])),speed_ratio))
         else:
             action = np.hstack((np.vstack((self.vr,self.vel[1])),speed_ratio))
-        
-        #action = INIT_VXVYVZ
+
         rpm = np.zeros((self.NUM_DRONES, 4))
 
 
@@ -323,7 +320,7 @@ class VelocityAviary(BaseAviary):
             bInside = 0
 
 
-        if int(adjency_mat[0][1])>0 and self.collision_detector()  and np.linalg.norm(self.vel[0]-INIT_VXVYVZ[0])<1e-2 and hasattr(self,'vr') or np.linalg.norm(self.pos[0]-self.pos[1])< (1.05 * self.PROTECTED_RADIUS):
+        if int(adjency_mat[0][1])>0 and self.collision_detector(): # and np.linalg.norm(self.vel[0]-INIT_VXVYVZ[0])<1e-2 and hasattr(self,'vr') or np.linalg.norm(self.pos[0]-self.pos[1])< (1.05 * self.PROTECTED_RADIUS):
 
             rel_pos = self.pos[1,:]-self.pos[0,:]
             doi = np.linalg.norm(rel_pos)
@@ -338,10 +335,10 @@ class VelocityAviary(BaseAviary):
                 incentive = 0
             
             
-            #if np.dot(self.vel[1],self.pos[1]-self.pos[0])>0:
-            #    goodjob = 5
-            #else:
-            #    goodjob = 0
+            if np.dot(self.vel[1],self.pos[1]-self.pos[0])>0:
+                goodjob = 5
+            else:
+                goodjob = 0
 
 
             rad2deg = 180/np.pi
@@ -357,7 +354,7 @@ class VelocityAviary(BaseAviary):
             else:
                 turn_angle_sign = -1
 
-            turn_angle = turn_angle_sign * self.turn_angle[0] #* np.arccos(np.dot(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0])))
+            #turn_angle = turn_angle_sign * self.turn_angle[0] #* np.arccos(np.dot(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0])))
             
 
             #if 1/turn_angle > 10:
@@ -372,7 +369,7 @@ class VelocityAviary(BaseAviary):
 
             angle_penalty = 0
             awards_turn_angle = 0
-
+            '''
             if turn_angle_sign>0:
                 if hasattr(self, 'turn_upper'):
                     if turn_angle < self.turn_upper:
@@ -401,20 +398,34 @@ class VelocityAviary(BaseAviary):
                         awards_turn_angle = 1.
                     else:
                         awards_turn_angle = 0.
-
+            '''
     
+            deviation = -5*np.linalg.norm(self.target_vel - self.vel[0])
+            forward_bias = np.dot(self.vel[0]/np.linalg.norm(self.vel[0]),np.array([1,0,0]))
 
-
+            if self.pos[0,2]<0.5:
+                bGround=-1
+            else:
+                bGround = 0
 
             
-            reward  = np.abs((1/self.turn_angle[0])) + bInside #awards_turn_angle +  bInside + angle_penalty
+            #Abhik term
+
+            sigma = 2
+            
+            if doi>sigma-self.PROTECTED_RADIUS:
+                abhik = np.min([1,(doi-self.PROTECTED_RADIUS)/(sigma-self.PROTECTED_RADIUS)])
+            else:
+                abhik = np.min([1,-(doi-self.PROTECTED_RADIUS)/(sigma-self.PROTECTED_RADIUS)])
+            
+            reward  = forward_bias + bInside + deviation + goodjob + bGround #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
             #reward = - np.abs(self.rpy[0, 2]) + np.dot(dir_vector,self.vel[0]) + incentive + bInside #+ 5/d2g #- 1/doi  # - d + 2*doi #- 10*np.linalg.norm(self.vel[0,:]-np.array([1,0,0]))#+ 10/d2g #- 1 /doi
             #np.dot(self.vel[0,:]/np.linalg.norm(self.vel[0,:]),dir_vector) - 1/doi - np.abs(self.rpy[0, 2]) + -10*(self.pos[0,2]-2)**2 + 10
 
             precision = 4
             #print(f"TotalReward {reward:.{precision}} \t d {10*d:.{precision}} \t yaw {np.abs(self.rpy[0, 2]):.{precision}} \t Incentive {incentive} \tProj: {15*np.dot(dir_vector,self.vel[0]):.{precision}} \t VelOwnY {self.vel[0,1]:.{precision}} \t VelOwnY {self.vel[0,2]:.{precision}}  \t VelIntY{self.vel[1,1]:.{precision}} \t  VelIntZ{self.vel[1,2]:.{precision}}")
             #print(f"TotalReward {reward}, Turn_Angle_deg {rad2deg*turn_angle:.{precision}}, bInside {bInside}, Turn_upper {self.turn_upper*rad2deg:.{precision}}, Turn_lower {self.turn_lower*rad2deg:.{precision}}")
-            print(f"TotalReward {reward}, Turn_Angle_deg {rad2deg*turn_angle:.{precision}}, bInside {bInside}")
+            print(f"TotalReward {reward:.{precision}} \t forward_bias {forward_bias:.{precision}} \t bInside {bInside} \t deviation {deviation:.{precision}}, abhik {abhik:.{precision}}")
             
             return reward
         

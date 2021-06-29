@@ -230,6 +230,9 @@ class BaseAviary(gym.Env):
                                                             farVal=1000.0
                                                             )
         #### Set initial poses #####################################
+        if collision_point is None:
+            self.COLLISION_POINT = np.array([0,0,3])
+        
         if initial_xyzs is None:
             self.INIT_XYZS = np.vstack([np.array([x*4*self.L for x in range(self.NUM_DRONES)]), \
                                         np.array([y*4*self.L for y in range(self.NUM_DRONES)]), \
@@ -520,6 +523,7 @@ class BaseAviary(gym.Env):
 
         INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/10 #/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
 
+        self.target_vel = INIT_VXVYVZ[0]
         speed_ratio = np.empty([self.NUM_DRONES,1])
         for i in range(self.NUM_DRONES):
             speed_ratio[i] =np.linalg.norm(INIT_VXVYVZ[i])/SPEED_LIMIT
