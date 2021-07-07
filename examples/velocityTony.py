@@ -43,7 +43,7 @@ from stable_baselines3.ppo import MlpPolicy
 #from stable_baselines import  PPO2
 #from stable_baselines.common.policies import MlpLstmPolicy
 #from stable_baselines.common import make_vec_env
-from stable_baselines.common.env_checker import check_env
+from stable_baselines3.common.env_checker import check_env
 import ray
 from ray.tune import register_env
 from ray.rllib.agents import ppo
