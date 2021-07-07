@@ -129,32 +129,77 @@ if __name__ == "__main__":
     START = time.time()
 
     #Start the model learning
-    policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])])
-    #policy_kwargs = dict(net_arch=dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])) #For TD3, SAC, DDPG                    
-    model = PPO(MlpPolicy,
-                env,
-                verbose=1,
-                tensorboard_log="./ppo_drone_tensorboard/",
-                policy_kwargs=policy_kwargs
-                )
+    #policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])])
+    ##policy_kwargs = dict(net_arch=dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])) #For TD3, SAC, DDPG                    
+    #model = PPO(MlpPolicy,
+    #            env,
+    #            verbose=1,
+    #            tensorboard_log="./ppo_drone_tensorboard/",
+    #            policy_kwargs=policy_kwargs
+    #            )
+
+
+    ray.shutdown()
+    ray.init(ignore_reinit_error=True)
+    register_env("velocity-aviary-v1", lambda _: VelocityAviary(drone_model=ARGS.drone,
+                         num_drones=ARGS.num_drones,
+                         initial_xyzs=INIT_XYZS,
+                         initial_rpys=INIT_RPYS,
+                         physics=Physics.PYB,
+                         neighbourhood_radius=5,
+                         freq=ARGS.simulation_freq_hz,
+                         aggregate_phy_steps=AGGR_PHY_STEPS,
+                         gui=ARGS.gui,
+                         record=ARGS.record_video,
+                         obstacles=ARGS.obstacles,
+                         user_debug_gui=ARGS.user_debug_gui,
+                         goal_xyz=GOAL_XYZ,
+                         collision_point = COLLISION_POINT,
+                         protected_radius=protected_radius,
+                         goal_radius = ARGS.goal_radius
+                         ))
+    config = ppo.DEFAULT_CONFIG.copy()
+    config["num_workers"] = 1
+    config["framework"] = "torch"
+    config["env"] = "velocity-aviary-v1"
+    config["model"]["use_lstm"]=True
+    #config["model"]["_time_major"] = True
+    #config["model"]["lstm_cell_size"]=64   
+    agent = ppo.PPOTrainer(config)
+
+    #policy = agent.get_policy()
+    #logits, _ = policy.model.from_batch({"obs": dict(env.reset())})
+
+    for i in range(1): # Typically not enough
+        results = agent.train()
+        print("[INFO] {:d}: episode_reward max {:f} min {:f} mean {:f}".format(i,
+                                                                                results["episode_reward_max"],
+                                                                                results["episode_reward_min"],
+                                                                                results["episode_reward_mean"]
+                                                                                )
+               )
+    policy = agent.get_policy()
+    ray.shutdown()
 
     #Deeper NN 
     #model = PPO.load("PPO", env=env)
     #model.learn(total_timesteps=100_000) # Typically not enough
     #model.save("PPO")
-    model = PPO.load("PPO", env=env)
+    #model = PPO.load("PPO", env=env)
     #model = PPO.load("PPO_BEST_By_FAR", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
                     num_drones=ARGS.num_drones
                     )
     obs = env.reset()
+    state = agent.get_policy().get_initial_state()
     start = time.time()
     for i in range(ARGS.duration_sec*env.SIM_FREQ):
         if obs[-1] < 5 : 
-            action, _states = model.predict(obs,
-                                            deterministic=True,
-                                            )
+            action, _states, _dict = policy.compute_single_action(obs, state)
+            #action, _states = model.predict(obs,
+            #                                deterministic=True,
+            #                                )
         else:
             action = 0 #No Turn
 
