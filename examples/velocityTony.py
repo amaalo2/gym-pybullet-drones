@@ -62,25 +62,29 @@ if __name__ == "__main__":
     parser.add_argument('--obstacles',          default=False,      type=str2bool,      help='Whether to add obstacles to the environment (default: True)', metavar='')
     parser.add_argument('--simulation_freq_hz', default=240,        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=5,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
+    parser.add_argument('--duration_sec',       default=15,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
+    parser.add_argument('--collision_time',     default=10,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
     ARGS = parser.parse_args()
 
     #### Initialize the simulation #############################
+
+    # First row is onwship, second row is intruder
     INIT_XYZS = np.array([
-                          [ -3, 0, 3],
-                          [[rand.uniform(1,5), rand.uniform(-2,2), rand.uniform(1,5)]],
+                          [ -10, 0, 6],
+                          [rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)],
                           ])
 
+    # Initial attitude of the ownship and intruder
     INIT_RPYS = np.array([
                           [0, 0, 0],
                           [0, 0, 0],
                           ])
 
-    GOAL_XYZ = np.array([0,0,3])#[0,rand.randint(-2,2),rand.randint(2,4)])
-    COLLISION_POINT = np.array([0,0,3])
-    protected_radius = 1
+    GOAL_XYZ = np.array([0,0,6])#[0,rand.randint(-2,2),rand.randint(2,4)])
+    COLLISION_POINT = np.array([0,0,6])
+    protected_radius = 2
     
 
     AGGR_PHY_STEPS = int(ARGS.simulation_freq_hz/ARGS.control_freq_hz) if ARGS.aggregate else 1
@@ -92,7 +96,7 @@ if __name__ == "__main__":
                          initial_xyzs=INIT_XYZS,
                          initial_rpys=INIT_RPYS,
                          physics=Physics.PYB,
-                         neighbourhood_radius=5,
+                         neighbourhood_radius=10,
                          freq=ARGS.simulation_freq_hz,
                          aggregate_phy_steps=AGGR_PHY_STEPS,
                          gui=ARGS.gui,
@@ -102,7 +106,8 @@ if __name__ == "__main__":
                          goal_xyz=GOAL_XYZ,
                          collision_point = COLLISION_POINT,
                          protected_radius=protected_radius,
-                         goal_radius = ARGS.goal_radius
+                         goal_radius = ARGS.goal_radius,
+                         collision_time = ARGS.collision_time,
                          )
 
     #### Obtain the PyBullet Client ID from the environment ####
@@ -139,9 +144,9 @@ if __name__ == "__main__":
                 )
 
     #Deeper NN 
-    #model = PPO.load("PPO", env=env)
-    #model.learn(total_timesteps=100_000) # Typically not enough
-    #model.save("PPO")
+    model = PPO.load("PPO", env=env)
+    model.learn(total_timesteps=400_000) # Typically not enough
+    model.save("PPO")
     model = PPO.load("PPO", env=env)
     #model = PPO.load("PPO_BEST_By_FAR", env=env)
 
@@ -156,7 +161,7 @@ if __name__ == "__main__":
                                             deterministic=True,
                                             )
         else:
-            action = 0 #No Turn
+            action = np.array([1,0,0]) #No Turn
 
         #print(f"action {action}")
         obs, reward, done, info = env.step(action)

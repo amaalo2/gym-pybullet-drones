@@ -71,6 +71,7 @@ class BaseAviary(gym.Env):
                  collision_point = None,
                  protected_radius=None,
                  goal_radius = None, 
+                 collision_time = None,
                  ):
         """Initialization of a generic aviary environment.
 
@@ -128,6 +129,8 @@ class BaseAviary(gym.Env):
         self.COLLISION_POINT = collision_point
         self.PROTECTED_RADIUS = protected_radius
         self.GOAL_RADIUS = goal_radius
+        self.COLLISION_TIME = collision_time
+
         #### Load the drone properties from the .urdf file #########
         self.M, \
         self.L, \
@@ -247,6 +250,14 @@ class BaseAviary(gym.Env):
             self.INIT_RPYS = initial_rpys
         else:
             print("[ERROR] invalid initial_rpys in BaseAviary.__init__(), try initial_rpys.reshape(NUM_DRONES,3)")
+
+
+        ### Save initial values for Housekeeping #################################
+        self.COLLISION_POINT_INITIAL = self.COLLISION_POINT
+        self.GOAL_XYZ_INITIAL = self.GOAL_XYZ
+        self.INIT_XYZS_INITIAL = initial_xyzs 
+
+
         #### Create action and observation spaces ##################
         self.action_space = self._actionSpace()
         self.observation_space = self._observationSpace()
@@ -479,10 +490,10 @@ class BaseAviary(gym.Env):
         self.last_action = -1*np.ones((self.NUM_DRONES, 4))
         self.last_clipped_action = np.zeros((self.NUM_DRONES, 4))
         self.gui_input = np.zeros(4)
-        self.GOAL_XYZ = np.array([5,0,3])#[0,rand.randint(-2,2),rand.randint(2,4)])
-        self.INIT_XYZS = np.array([
-                          [ -3, 0, 3],
-                          [rand.uniform(1,5), rand.uniform(-2,2), rand.uniform(1,5)],
+        self.GOAL_XYZ = self.GOAL_XYZ_INITIAL #np.array([5,0,3])#[0,rand.randint(-2,2),rand.randint(2,4)])
+        self.INIT_XYZS =  np.array([
+                          [ -10, 0, 6],
+                          [rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)],
                           ])
         #### Initialize the drones kinemaatic information ##########
         self.pos = np.zeros((self.NUM_DRONES, 3))
@@ -521,15 +532,18 @@ class BaseAviary(gym.Env):
         
         SPEED_LIMIT = 0.5*self.MAX_SPEED_KMH * (1000/3600)
 
-        INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/10 #/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
+        ownship_vel = (self.COLLISION_POINT - self.INIT_XYZS[0])/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS[0])
+        intruder_vel = (self.COLLISION_POINT - self.INIT_XYZS[1])/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS[1])
+        
+        unit_vector_vxvyvz = np.vstack((ownship_vel,intruder_vel))
 
-        self.target_vel = INIT_VXVYVZ[0]
+
         speed_ratio = np.empty([self.NUM_DRONES,1])
         for i in range(self.NUM_DRONES):
-            speed_ratio[i] =np.linalg.norm(INIT_VXVYVZ[i])/SPEED_LIMIT
+            speed_ratio[i] =np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[i])/(SPEED_LIMIT*self.COLLISION_TIME)
         
-
-        INIT_VXVYVZ = np.hstack((INIT_VXVYVZ,speed_ratio))
+        self.target_vel = unit_vector_vxvyvz[0]*speed_ratio[0] * SPEED_LIMIT
+        INIT_VXVYVZ = np.hstack((unit_vector_vxvyvz,speed_ratio))
 
         
         p.resetBaseVelocity(self.DRONE_IDS[0],

@@ -27,7 +27,8 @@ class VelocityAviary(BaseAviary):
                  goal_xyz= None,
                  collision_point = None,
                  protected_radius=None,
-                 goal_radius = None, 
+                 goal_radius = None,
+                 collision_time = None,
                  ):
         """Initialization of an aviary environment for or high-level planning.
 
@@ -80,10 +81,11 @@ class VelocityAviary(BaseAviary):
                          goal_xyz= goal_xyz,
                          collision_point = collision_point,
                          protected_radius= protected_radius,
-                         goal_radius = goal_radius, 
+                         goal_radius = goal_radius,
+                         collision_time = collision_time 
                          )
         #### Set a limit on the maximum target speed ###############
-        self.SPEED_LIMIT = 0.03*self.MAX_SPEED_KMH * (1000/3600)
+        self.SPEED_LIMIT = 0.5*self.MAX_SPEED_KMH * (1000/3600)
 
     ################################################################################
 
@@ -97,13 +99,17 @@ class VelocityAviary(BaseAviary):
 
         """
         #### Action vector ######### X       Y       Z   fract. of MAX_SPEED_KMH
-        act_lower_bound = np.array([-np.pi/2])
-        act_upper_bound = np.array([ np.pi/2])
+        #act_lower_bound = np.array([-np.pi/2])
+        #act_upper_bound = np.array([ np.pi/2])
         #return spaces.Dict({str(i): spaces.Box(low=act_lower_bound,
         #                                       high=act_upper_bound,
         #                                       dtype=np.float32
         #                                       ) for i in range(self.NUM_DRONES)})
 
+
+
+        act_lower_bound = np.array([-1, -1, -1])
+        act_upper_bound = np.array([ 1,  1,  1])
         return spaces.Box(low=act_lower_bound,
                           high=act_upper_bound,
                           dtype=np.float32)
@@ -142,8 +148,8 @@ class VelocityAviary(BaseAviary):
         #Hard coded for only 1 intruder 
 
         #observation vector           x         y     z         vx      vy       vz       relx    rely     relz     relvx    relvy    relvx  distance ownship to intruder     
-        obs_lower_bound = np.array([-10.,       -10.,   0.,   -10,       -10,     -10,    -10,       -10,      -10,   -10,       -10,      -10,    0.,])
-        obs_upper_bound = np.array([ 10.,        10.,   20.,   10,        10,      10,     10,        10,       10,    10,        10,       10,    20,])
+        obs_lower_bound = np.array([-20.,       -20.,   0.,   -10,       -10,     -10,    -20,       -20,      -20,   -10,       -10,      -10,    0.,])
+        obs_upper_bound = np.array([ 20.,        20.,   40.,   10,        10,      10,     20,        20,       20,    10,        10,       10,    40,])
 
 
         ############################## doi      turn_upper, turn_lower        
@@ -223,15 +229,33 @@ class VelocityAviary(BaseAviary):
 
         #TODO - Retreive the duration in self.
         
-        INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/10 #/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
+        SPEED_LIMIT = 0.5*self.MAX_SPEED_KMH * (1000/3600)
+
+        ownship_vel = (self.COLLISION_POINT - self.INIT_XYZS[0])/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS[0])
+        intruder_vel = (self.COLLISION_POINT - self.INIT_XYZS[1])/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS[1])
+        
+        unit_vector_vxvyvz = np.vstack((ownship_vel,intruder_vel))
+
+
         speed_ratio = np.empty([self.NUM_DRONES,1])
         for i in range(self.NUM_DRONES):
-            speed_ratio[i] =np.linalg.norm(INIT_VXVYVZ[i])/self.SPEED_LIMIT
-            
-        INIT_VXVYVZ2 = np.hstack((INIT_VXVYVZ,speed_ratio))
+            speed_ratio[i] =np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[i])/(SPEED_LIMIT*self.COLLISION_TIME)
+        
+        self.target_vel = unit_vector_vxvyvz[0]*speed_ratio[0]*SPEED_LIMIT 
+        INIT_VXVYVZ2 = np.hstack((unit_vector_vxvyvz,speed_ratio))
+        
+        
+        '''
+        INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
+        speed_ratio = np.empty([self.NUINIT_VXVYVZM_DRONES,1])
+        for i in range(self.NUM_DRONES):
+            speed_ratio[i] =np.linalg.norm(INIT_VXVYVZ[i])/(self.SPEED_LIMIT*self.COLLISION_TIME)
+        '''   
         adjency_mat = self._getAdjacencyMatrix()
 
-        if int(adjency_mat[0][1])>0 and self.collision_detector() and np.linalg.norm(self.vel[0]-self.target_vel)<1e-2 :
+        if int(adjency_mat[0][1])>0 and self.collision_detector() and np.linalg.norm(self.vel[0]-self.target_vel)<0.04 :
+
+            '''
             V_INTRUDER = np.delete(INIT_VXVYVZ2,0,0)
 
             def compute_elevation_and_azimuth(x1,x2):
@@ -247,7 +271,7 @@ class VelocityAviary(BaseAviary):
 
                 return theta,psi
             def cpm(x):
-                ''' Takes a vector (np array) and its associated  cross product matrix '''
+                # Takes a vector (np array) and its associated  cross product matrix 
                 return np.array([[0,-x[2],x[1]],[x[2],0,-x[0]],[-x[1],x[0],0]])
 
 
@@ -267,11 +291,16 @@ class VelocityAviary(BaseAviary):
             self.turn_angle = action #store the turn angle before it gets overwritten 
             v_own  = np.hstack((vr,speed_ratio[0]))
             action = np.vstack((v_own,V_INTRUDER))
+            '''
+            action = np.hstack((np.vstack((action,intruder_vel)),speed_ratio))
         
         elif not int(adjency_mat[0][1])>0:
-            action = np.hstack((np.vstack((INIT_VXVYVZ[0],self.vel[1])),speed_ratio))
+            action = np.hstack((np.vstack((ownship_vel,intruder_vel)),speed_ratio))
         else:
-            action = np.hstack((np.vstack((self.vr,self.vel[1])),speed_ratio))
+            try:
+                action = np.hstack((np.vstack((self.vr,intruder_vel)),speed_ratio))
+            except:
+                action = np.hstack((np.vstack((ownship_vel,intruder_vel)),speed_ratio))
 
         rpm = np.zeros((self.NUM_DRONES, 4))
 
@@ -312,9 +341,9 @@ class VelocityAviary(BaseAviary):
         """
         
         adjency_mat = self._getAdjacencyMatrix()
-        INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/10 #/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
+        INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/self.COLLISION_TIME #/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
         
-        if np.linalg.norm(self.pos[0]-self.pos[1])< (1.05 * self.PROTECTED_RADIUS):
+        if np.linalg.norm(self.pos[0]-self.pos[1])< (1.5 * self.PROTECTED_RADIUS):
             bInside = -100
         else:
             bInside = 0
@@ -411,7 +440,7 @@ class VelocityAviary(BaseAviary):
             
             #Abhik term
 
-            sigma = 2
+            sigma = 3
             
             if doi>sigma-self.PROTECTED_RADIUS:
                 abhik = np.min([1,(doi-self.PROTECTED_RADIUS)/(sigma-self.PROTECTED_RADIUS)])
@@ -455,7 +484,7 @@ class VelocityAviary(BaseAviary):
             #Don't compute the distance between the ownship and itself
             if j==0:
                 pass
-            elif np.linalg.norm(ownship[0:3]-intruder[0:3])<self.PROTECTED_RADIUS:
+            elif np.linalg.norm(ownship[0:3]-intruder[0:3])<1.05*self.PROTECTED_RADIUS:
                 print('Crash')
                 return True
 
