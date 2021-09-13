@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     GOAL_XYZ = np.array([0,0,6])#[0,rand.randint(-2,2),rand.randint(2,4)])
     COLLISION_POINT = np.array([0,0,6])
-    protected_radius = 2
+    protected_radius = 1
     
 
     AGGR_PHY_STEPS = int(ARGS.simulation_freq_hz/ARGS.control_freq_hz) if ARGS.aggregate else 1

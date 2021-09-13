@@ -108,7 +108,7 @@ class VelocityAviary(BaseAviary):
 
 
 
-        act_lower_bound = np.array([-1, -1, -1])
+        act_lower_bound = np.array([0, -1, -1])
         act_upper_bound = np.array([ 1,  1,  1])
         return spaces.Box(low=act_lower_bound,
                           high=act_upper_bound,
@@ -147,9 +147,9 @@ class VelocityAviary(BaseAviary):
 
         #Hard coded for only 1 intruder 
 
-        #observation vector           x         y     z         vx      vy       vz       relx    rely     relz     relvx    relvy    relvx  distance ownship to intruder     
-        obs_lower_bound = np.array([-20.,       -20.,   0.,   -10,       -10,     -10,    -20,       -20,      -20,   -10,       -10,      -10,    0.,])
-        obs_upper_bound = np.array([ 20.,        20.,   40.,   10,        10,      10,     20,        20,       20,    10,        10,       10,    40,])
+        #observation vector           x         y     z         vx      vy       vz       relx    rely     relz     relvx    relvy    relvx  distance ownship to intruder, doi - rpz     
+        obs_lower_bound = np.array([-20.,       -20.,   0.,   -10,       -10,     -10,    -20,       -20,      -20,   -10,       -10,      -10,    0., 0])
+        obs_upper_bound = np.array([ 20.,        20.,   40.,   10,        10,      10,     20,        20,       20,    10,        10,       10,    40, 40])
 
 
         ############################## doi      turn_upper, turn_lower        
@@ -198,8 +198,8 @@ class VelocityAviary(BaseAviary):
         #obs_vector = np.hstack([doi, self.turn_upper, self.turn_lower])
         #return obs_vector.reshape(3)
 
-        obs_vector = np.hstack([self.pos[0,:],self.vel[0,:],self.pos[1,:],self.vel[1,:],doi])
-        return obs_vector.reshape(13)
+        obs_vector = np.hstack([self.pos[0,:],self.vel[0,:],self.pos[1,:],self.vel[1,:],doi, doi - self.PROTECTED_RADIUS])
+        return obs_vector.reshape(14)
 
         #adjacency_mat = self._getAdjacencyMatrix()
         #return {str(i): {"state": self._getDroneStateVector(i), "neighbors": adjacency_mat[i, :]} for i in range(self.NUM_DRONES)}
@@ -241,7 +241,7 @@ class VelocityAviary(BaseAviary):
         for i in range(self.NUM_DRONES):
             speed_ratio[i] =np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[i])/(SPEED_LIMIT*self.COLLISION_TIME)
         
-        self.target_vel = unit_vector_vxvyvz[0]*speed_ratio[0]*SPEED_LIMIT 
+        #self.target_vel = unit_vector_vxvyvz[0]*speed_ratio[0]*SPEED_LIMIT 
         INIT_VXVYVZ2 = np.hstack((unit_vector_vxvyvz,speed_ratio))
         
         
@@ -253,52 +253,46 @@ class VelocityAviary(BaseAviary):
         '''   
         adjency_mat = self._getAdjacencyMatrix()
 
+        '''
+        V_INTRUDER = np.delete(INIT_VXVYVZ2,0,0)
+        def compute_elevation_and_azimuth(x1,x2):
+            #Find the relative position 
+            delta_x = x2[0]-x1[0]
+            delta_y = x2[1]-x1[1]
+            delta_z = x2[2]-x1[2] 
+            xy_norm=np.sqrt(delta_x ** 2 + delta_y ** 2)
+            theta = np.arctan(-delta_z/xy_norm) # because you align thumb with y
+            psi = np.arctan(delta_y/delta_x)
+            return theta,psi
+        def cpm(x):
+            # Takes a vector (np array) and its associated  cross product matrix 
+            return np.array([[0,-x[2],x[1]],[x[2],0,-x[0]],[-x[1],x[0],0]])
+        theta,psi = compute_elevation_and_azimuth(self.pos[0],self.pos[1])
+        #Compute optimal plane 
+        #_, self.turn_upper,self.turn_lower, _, = self.velocity_obstacle()
+        x = np.arctan((np.cos(theta)*np.sin(psi))/np.sin(theta))
+        if x<0:
+            x = np.pi + x
+        n = np.array([0,-np.sin(x),np.cos(x)])
+        e = n.reshape(3,1)
+        R = e@np.transpose(e) + np.cos(action) * (np.identity(3)- e@np.transpose(e))+np.sin(action)*cpm(n)
+        vr = R @ (self.vel[0]) 
+        self.vr = vr
+        self.target_vel = vr
+        self.turn_angle = action #store the turn angle before it gets overwritten 
+        v_own  = np.hstack((vr,speed_ratio[0]))
+        action = np.vstack((v_own,V_INTRUDER))
+        '''
+
         if int(adjency_mat[0][1])>0 and self.collision_detector() and np.linalg.norm(self.vel[0]-self.target_vel)<0.04 :
 
-            '''
-            V_INTRUDER = np.delete(INIT_VXVYVZ2,0,0)
 
-            def compute_elevation_and_azimuth(x1,x2):
-                #Find the relative position 
-                delta_x = x2[0]-x1[0]
-                delta_y = x2[1]-x1[1]
-                delta_z = x2[2]-x1[2] 
-
-                xy_norm=np.sqrt(delta_x ** 2 + delta_y ** 2)
-
-                theta = np.arctan(-delta_z/xy_norm) # because you align thumb with y
-                psi = np.arctan(delta_y/delta_x)
-
-                return theta,psi
-            def cpm(x):
-                # Takes a vector (np array) and its associated  cross product matrix 
-                return np.array([[0,-x[2],x[1]],[x[2],0,-x[0]],[-x[1],x[0],0]])
-
-
-            theta,psi = compute_elevation_and_azimuth(self.pos[0],self.pos[1])
-
-            #Compute optimal plane 
-            #_, self.turn_upper,self.turn_lower, _, = self.velocity_obstacle()
-            x = np.arctan((np.cos(theta)*np.sin(psi))/np.sin(theta))
-            if x<0:
-                x = np.pi + x
-            n = np.array([0,-np.sin(x),np.cos(x)])
-            e = n.reshape(3,1)
-            R = e@np.transpose(e) + np.cos(action) * (np.identity(3)- e@np.transpose(e))+np.sin(action)*cpm(n)
-            vr = R @ (self.vel[0]) 
-            self.vr = vr
-            self.target_vel = vr
-            self.turn_angle = action #store the turn angle before it gets overwritten 
-            v_own  = np.hstack((vr,speed_ratio[0]))
-            action = np.vstack((v_own,V_INTRUDER))
-            '''
-            action = np.hstack((np.vstack((action,intruder_vel)),speed_ratio))
-        
-        elif not int(adjency_mat[0][1])>0:
-            action = np.hstack((np.vstack((ownship_vel,intruder_vel)),speed_ratio))
+            print(f"Action : {action}")
+            self.target_vel = (action/np.linalg.norm(action))*speed_ratio[0]*SPEED_LIMIT 
+            action = np.hstack((np.vstack((action/np.linalg.norm(action),intruder_vel)),speed_ratio))
         else:
             try:
-                action = np.hstack((np.vstack((self.vr,intruder_vel)),speed_ratio))
+                action = np.hstack((np.vstack((self.target_vel,intruder_vel)),speed_ratio))
             except:
                 action = np.hstack((np.vstack((ownship_vel,intruder_vel)),speed_ratio))
 
@@ -429,7 +423,7 @@ class VelocityAviary(BaseAviary):
                         awards_turn_angle = 0.
             '''
     
-            deviation = -5*np.linalg.norm(self.target_vel - self.vel[0])
+            deviation = -10*np.linalg.norm(self.target_vel - self.vel[0])
             forward_bias = np.dot(self.vel[0]/np.linalg.norm(self.vel[0]),np.array([1,0,0]))
 
             if self.pos[0,2]<0.5:
@@ -447,7 +441,9 @@ class VelocityAviary(BaseAviary):
             else:
                 abhik = np.min([1,-(doi-self.PROTECTED_RADIUS)/(sigma-self.PROTECTED_RADIUS)])
             
-            reward  = forward_bias + bInside + deviation + goodjob + bGround #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
+            reward  = forward_bias + bInside + goodjob + bGround + deviation #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
+
+            #reward  = forward_bias + goodjob + bInside - 1000/doi + bGround
             #reward = - np.abs(self.rpy[0, 2]) + np.dot(dir_vector,self.vel[0]) + incentive + bInside #+ 5/d2g #- 1/doi  # - d + 2*doi #- 10*np.linalg.norm(self.vel[0,:]-np.array([1,0,0]))#+ 10/d2g #- 1 /doi
             #np.dot(self.vel[0,:]/np.linalg.norm(self.vel[0,:]),dir_vector) - 1/doi - np.abs(self.rpy[0, 2]) + -10*(self.pos[0,2]-2)**2 + 10
 
