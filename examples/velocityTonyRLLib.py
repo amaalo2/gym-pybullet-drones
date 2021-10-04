@@ -65,23 +65,34 @@ if __name__ == "__main__":
     parser.add_argument('--duration_sec',       default=5,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
+    parser.add_argument('--collision_time',     default=20,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
     ARGS = parser.parse_args()
 
     #### Initialize the simulation #############################
-    INIT_XYZS = np.array([
-                          [ -3, 0, 3],
-                          [[rand.uniform(1,5), rand.uniform(-2,2), rand.uniform(1,5)]],
-                          ])
+    GOAL_XYZ = np.array([0,0,4])#[0,rand.randint(-2,2),rand.randint(2,4)])
+    COLLISION_POINT = np.array([0,0,6])
+    protected_radius = 1
+    neighbourhood_radius = 3
+
+    # First row is onwship, second row is intruder
+    a = rand.randint(1,1)
+    if a == 1:
+        x_i = [10,0,6]
+    elif a == 2:
+        x_i = [7,-15,2]
+    elif a == 3:
+        x_i = [0,0,1]
+    elif a == 4:
+        x_i = [0,0,20]
+
+    x_o = np.array([-10,0,6]) 
+
+    INIT_XYZS = np.vstack((x_o,x_i))
 
     INIT_RPYS = np.array([
                           [0, 0, 0],
                           [0, 0, 0],
                           ])
-
-    GOAL_XYZ = np.array([0,0,3])#[0,rand.randint(-2,2),rand.randint(2,4)])
-    COLLISION_POINT = np.array([0,0,3])
-    protected_radius = 1
-    
 
     AGGR_PHY_STEPS = int(ARGS.simulation_freq_hz/ARGS.control_freq_hz) if ARGS.aggregate else 1
     PHY = Physics.PYB
@@ -92,7 +103,7 @@ if __name__ == "__main__":
                          initial_xyzs=INIT_XYZS,
                          initial_rpys=INIT_RPYS,
                          physics=Physics.PYB,
-                         neighbourhood_radius=5,
+                         neighbourhood_radius=neighbourhood_radius,
                          freq=ARGS.simulation_freq_hz,
                          aggregate_phy_steps=AGGR_PHY_STEPS,
                          gui=ARGS.gui,
@@ -102,7 +113,8 @@ if __name__ == "__main__":
                          goal_xyz=GOAL_XYZ,
                          collision_point = COLLISION_POINT,
                          protected_radius=protected_radius,
-                         goal_radius = ARGS.goal_radius
+                         goal_radius = ARGS.goal_radius,
+                         collision_time = ARGS.collision_time,
                          )
 
     #### Obtain the PyBullet Client ID from the environment ####
@@ -146,7 +158,7 @@ if __name__ == "__main__":
                          initial_xyzs=INIT_XYZS,
                          initial_rpys=INIT_RPYS,
                          physics=Physics.PYB,
-                         neighbourhood_radius=5,
+                         neighbourhood_radius=neighbourhood_radius,
                          freq=ARGS.simulation_freq_hz,
                          aggregate_phy_steps=AGGR_PHY_STEPS,
                          gui=ARGS.gui,
@@ -156,7 +168,8 @@ if __name__ == "__main__":
                          goal_xyz=GOAL_XYZ,
                          collision_point = COLLISION_POINT,
                          protected_radius=protected_radius,
-                         goal_radius = ARGS.goal_radius
+                         goal_radius = ARGS.goal_radius,
+                         collision_time = ARGS.collision_time,
                          ))
     config = ppo.DEFAULT_CONFIG.copy()
     config["num_workers"] = 1
@@ -181,13 +194,6 @@ if __name__ == "__main__":
     policy = agent.get_policy()
     ray.shutdown()
 
-    #Deeper NN 
-    #model = PPO.load("PPO", env=env)
-    #model.learn(total_timesteps=100_000) # Typically not enough
-    #model.save("PPO")
-    #model = PPO.load("PPO", env=env)
-    #model = PPO.load("PPO_BEST_By_FAR", env=env)
-
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
                     num_drones=ARGS.num_drones
                     )
@@ -195,13 +201,10 @@ if __name__ == "__main__":
     state = agent.get_policy().get_initial_state()
     start = time.time()
     for i in range(ARGS.duration_sec*env.SIM_FREQ):
-        if obs[-1] < 5 : 
+        if obs[-1] < neighbourhood_radius : 
             action, _states, _dict = policy.compute_single_action(obs, state)
-            #action, _states = model.predict(obs,
-            #                                deterministic=True,
-            #                                )
         else:
-            action = 0 #No Turn
+            action = np.array([1,0,0]) #No Turn
 
         #print(f"action {action}")
         obs, reward, done, info = env.step(action)

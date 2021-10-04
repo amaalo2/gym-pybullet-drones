@@ -62,19 +62,36 @@ if __name__ == "__main__":
     parser.add_argument('--obstacles',          default=False,      type=str2bool,      help='Whether to add obstacles to the environment (default: True)', metavar='')
     parser.add_argument('--simulation_freq_hz', default=240,        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=15,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
+    parser.add_argument('--duration_sec',       default=30,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
-    parser.add_argument('--collision_time',     default=10,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
+    parser.add_argument('--collision_time',     default=20,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
     ARGS = parser.parse_args()
 
     #### Initialize the simulation #############################
+    GOAL_XYZ = np.array([-7,4,6])#[0,rand.randint(-2,2),rand.randint(2,4)])
+    COLLISION_POINT = np.array([0,0,6])
+    protected_radius = 1
+    neighbourhood_radius = 10
+
 
     # First row is onwship, second row is intruder
-    INIT_XYZS = np.array([
-                          [ -10, 0, 6],
-                          [rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)],
-                          ])
+    a = rand.randint(1,1)
+    if a == 1:
+        x_i = [19,15,15]
+    elif a == 2:
+        x_i = [7,-15,2]
+    elif a == 3:
+        x_i = [0,0,1]
+    elif a == 4:
+        x_i = [0,0,20]
+    
+    #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
+        #COLLISION_POINT
+
+    x_o = np.array([-10,0,6]) 
+
+    INIT_XYZS = np.vstack((x_o,x_i))
 
     # Initial attitude of the ownship and intruder
     INIT_RPYS = np.array([
@@ -82,9 +99,7 @@ if __name__ == "__main__":
                           [0, 0, 0],
                           ])
 
-    GOAL_XYZ = np.array([0,0,6])#[0,rand.randint(-2,2),rand.randint(2,4)])
-    COLLISION_POINT = np.array([0,0,6])
-    protected_radius = 1
+
     
 
     AGGR_PHY_STEPS = int(ARGS.simulation_freq_hz/ARGS.control_freq_hz) if ARGS.aggregate else 1
@@ -96,7 +111,7 @@ if __name__ == "__main__":
                          initial_xyzs=INIT_XYZS,
                          initial_rpys=INIT_RPYS,
                          physics=Physics.PYB,
-                         neighbourhood_radius=10,
+                         neighbourhood_radius=neighbourhood_radius,
                          freq=ARGS.simulation_freq_hz,
                          aggregate_phy_steps=AGGR_PHY_STEPS,
                          gui=ARGS.gui,
@@ -155,8 +170,9 @@ if __name__ == "__main__":
                     )
     obs = env.reset()
     start = time.time()
+    n_trial = 0 
     for i in range(ARGS.duration_sec*env.SIM_FREQ):
-        if obs[-1] < 5 : 
+        if obs[-1] < neighbourhood_radius : 
             action, _states = model.predict(obs,
                                             deterministic=True,
                                             )
@@ -174,9 +190,13 @@ if __name__ == "__main__":
                        )
         if i%env.SIM_FREQ == 0:
             env.render()
-            print(f"Episode is done: {done}")
+            #print(f"Episode is done: {done}")
         sync(i, start, env.TIMESTEP)
         if done:
+            n_trial+=1
             obs = env.reset()
+            print(f"Run # {n_trial}")
     env.close()
+    logger.save()
     logger.plot()
+

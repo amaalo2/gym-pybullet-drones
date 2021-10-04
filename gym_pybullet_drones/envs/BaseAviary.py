@@ -423,15 +423,15 @@ class BaseAviary(gym.Env):
         if self.first_render_call and not self.GUI:
             print("[WARNING] BaseAviary.render() is implemented as text-only, re-initialize the environment using Aviary(gui=True) to use PyBullet's graphical interface")
             self.first_render_call = False
-        print("\n[INFO] BaseAviary.render() ——— it {:04d}".format(self.step_counter),
-              "——— wall-clock time {:.1f}s,".format(time.time()-self.RESET_TIME),
-              "simulation time {:.1f}s@{:d}Hz ({:.2f}x)".format(self.step_counter*self.TIMESTEP, self.SIM_FREQ, (self.step_counter*self.TIMESTEP)/(time.time()-self.RESET_TIME)))
-        for i in range (self.NUM_DRONES):
-            print("[INFO] BaseAviary.render() ——— drone {:d}".format(i),
-                  "——— x {:+06.2f}, y {:+06.2f}, z {:+06.2f}".format(self.pos[i, 0], self.pos[i, 1], self.pos[i, 2]),
-                  "——— velocity {:+06.2f}, {:+06.2f}, {:+06.2f}".format(self.vel[i, 0], self.vel[i, 1], self.vel[i, 2]),
-                  "——— roll {:+06.2f}, pitch {:+06.2f}, yaw {:+06.2f}".format(self.rpy[i, 0]*self.RAD2DEG, self.rpy[i, 1]*self.RAD2DEG, self.rpy[i, 2]*self.RAD2DEG),
-                  "——— angular velocity {:+06.4f}, {:+06.4f}, {:+06.4f} ——— ".format(self.ang_v[i, 0], self.ang_v[i, 1], self.ang_v[i, 2]))
+        #print("\n[INFO] BaseAviary.render() ——— it {:04d}".format(self.step_counter),
+        #      "——— wall-clock time {:.1f}s,".format(time.time()-self.RESET_TIME),
+        #      "simulation time {:.1f}s@{:d}Hz ({:.2f}x)".format(self.step_counter*self.TIMESTEP, self.SIM_FREQ, (self.step_counter*self.TIMESTEP)/(time.time()-self.RESET_TIME)))
+        #for i in range (self.NUM_DRONES):
+        #    print("[INFO] BaseAviary.render() ——— drone {:d}".format(i),
+        #          "——— x {:+06.2f}, y {:+06.2f}, z {:+06.2f}".format(self.pos[i, 0], self.pos[i, 1], self.pos[i, 2]),
+        #          "——— velocity {:+06.2f}, {:+06.2f}, {:+06.2f}".format(self.vel[i, 0], self.vel[i, 1], self.vel[i, 2]),
+        #          "——— roll {:+06.2f}, pitch {:+06.2f}, yaw {:+06.2f}".format(self.rpy[i, 0]*self.RAD2DEG, self.rpy[i, 1]*self.RAD2DEG, self.rpy[i, 2]*self.RAD2DEG),
+        #          "——— angular velocity {:+06.4f}, {:+06.4f}, {:+06.4f} ——— ".format(self.ang_v[i, 0], self.ang_v[i, 1], self.ang_v[i, 2]))
     
     ################################################################################
 
@@ -491,10 +491,23 @@ class BaseAviary(gym.Env):
         self.last_clipped_action = np.zeros((self.NUM_DRONES, 4))
         self.gui_input = np.zeros(4)
         self.GOAL_XYZ = self.GOAL_XYZ_INITIAL #np.array([5,0,3])#[0,rand.randint(-2,2),rand.randint(2,4)])
-        self.INIT_XYZS =  np.array([
-                          [ -10, 0, 6],
-                          [rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)],
-                          ])
+
+
+        # First row is onwship, second row is intruder
+        a = rand.randint(1,1)
+        if a == 1:
+            #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
+            x_i = [19,15,15]
+        elif a == 2:
+            x_i = [7,-15,2]
+        elif a == 3:
+            x_i = [0,0,1]
+        elif a == 4:
+            x_i = [0,0,20]
+        
+        #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
+        x_o = np.array([-10,0,6])
+        self.INIT_XYZS =  np.vstack((x_o,x_i))
         #### Initialize the drones kinemaatic information ##########
         self.pos = np.zeros((self.NUM_DRONES, 3))
         self.quat = np.zeros((self.NUM_DRONES, 4))
@@ -532,8 +545,8 @@ class BaseAviary(gym.Env):
         
         SPEED_LIMIT = 0.5*self.MAX_SPEED_KMH * (1000/3600)
 
-        ownship_vel = (self.COLLISION_POINT - self.INIT_XYZS[0])/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS[0])
-        intruder_vel = (self.COLLISION_POINT - self.INIT_XYZS[1])/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS[1])
+        ownship_vel = (self.COLLISION_POINT - self.INIT_XYZS[0])/ np.linalg.norm(self.COLLISION_POINT - self.INIT_XYZS[0])
+        intruder_vel = (self.COLLISION_POINT - self.INIT_XYZS[1])/ np.linalg.norm(self.COLLISION_POINT - self.INIT_XYZS[1])
         
         unit_vector_vxvyvz = np.vstack((ownship_vel,intruder_vel))
 
@@ -551,11 +564,16 @@ class BaseAviary(gym.Env):
                     physicsClientId=self.CLIENT
                     )
 
+        #p.resetBaseVelocity(self.DRONE_IDS[1],
+        #            [INIT_VXVYVZ[1,0], INIT_VXVYVZ[1,1], INIT_VXVYVZ[1,2]],
+        #            physicsClientId=self.CLIENT
+        #            )
+
         p.resetBaseVelocity(self.DRONE_IDS[1],
-                    [INIT_VXVYVZ[1,0], INIT_VXVYVZ[1,1], INIT_VXVYVZ[1,2]],
+                    [0,0,0],
                     physicsClientId=self.CLIENT
                     )
-        
+
     ################################################################################
 
     def _updateAndStoreKinematicInformation(self):
