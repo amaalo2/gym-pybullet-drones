@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser.add_argument('--obstacles',          default=False,      type=str2bool,      help='Whether to add obstacles to the environment (default: True)', metavar='')
     parser.add_argument('--simulation_freq_hz', default=240,        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=30,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
+    parser.add_argument('--duration_sec',       default=35,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
     parser.add_argument('--collision_time',     default=20,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
@@ -72,19 +72,19 @@ if __name__ == "__main__":
     GOAL_XYZ = np.array([-7,4,6])#[0,rand.randint(-2,2),rand.randint(2,4)])
     COLLISION_POINT = np.array([0,0,6])
     protected_radius = 1
-    neighbourhood_radius = 10
+    neighbourhood_radius = 5
 
 
     # First row is onwship, second row is intruder
-    a = rand.randint(1,1)
+    a = rand.randint(1,4)
     if a == 1:
-        x_i = [19,15,15]
+        x_i = [10,0,6]
     elif a == 2:
-        x_i = [7,-15,2]
-    elif a == 3:
         x_i = [0,0,1]
+    elif a == 3:
+        x_i = [2.5,4.5,3]
     elif a == 4:
-        x_i = [0,0,20]
+        x_i = [0,0,16]
     
     #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
         #COLLISION_POINT
@@ -146,10 +146,10 @@ if __name__ == "__main__":
 
     #### Run the simulation ####################################
     CTRL_EVERY_N_STEPS = int(np.floor(env.SIM_FREQ/ARGS.control_freq_hz))
-    START = time.time()
+    START = time.time() 
 
     #Start the model learning
-    policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])])
+    policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256], qf=[256, 256, 256, 256])])
     #policy_kwargs = dict(net_arch=dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])) #For TD3, SAC, DDPG                    
     model = PPO(MlpPolicy,
                 env,
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     model.learn(total_timesteps=400_000) # Typically not enough
     model.save("PPO")
     model = PPO.load("PPO", env=env)
-    #model = PPO.load("PPO_BEST_By_FAR", env=env)
+    #model = PPO.load("PPO_discrete", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
                     num_drones=ARGS.num_drones
@@ -171,16 +171,17 @@ if __name__ == "__main__":
     obs = env.reset()
     start = time.time()
     n_trial = 0 
-    for i in range(ARGS.duration_sec*env.SIM_FREQ):
-        if obs[-1] < neighbourhood_radius : 
+    for i in range(ARGS.duration_sec*env.SIM_FREQ): 
+        if ARGS.duration_sec*env.SIM_FREQ%AGGR_PHY_STEPS==0:
             action, _states = model.predict(obs,
-                                            deterministic=True,
-                                            )
-        else:
-            action = np.array([1,0,0]) #No Turn
+                                                deterministic=True,
+                                                )
+        #else:
+        #    action = np.array([1,0,0]) #No Turn
 
         #print(f"action {action}")
-        obs, reward, done, info = env.step(action)
+        #print(f"obs : {obs}")
+            obs, reward, done, info = env.step(action)
 
         for j in range(ARGS.num_drones):
             logger.log(drone=j,

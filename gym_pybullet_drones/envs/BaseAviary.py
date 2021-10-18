@@ -60,7 +60,7 @@ class BaseAviary(gym.Env):
                  initial_rpys=None,
                  physics: Physics=Physics.PYB,
                  freq: int=240,
-                 aggregate_phy_steps: int=1,
+                 aggregate_phy_steps: int=5,
                  gui=False,
                  record=False,
                  obstacles=False,
@@ -494,17 +494,15 @@ class BaseAviary(gym.Env):
 
 
         # First row is onwship, second row is intruder
-        a = rand.randint(1,1)
+        a = rand.randint(1,4)
         if a == 1:
-            #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
-            x_i = [19,15,15]
+            x_i = [10,0,6]
         elif a == 2:
-            x_i = [7,-15,2]
-        elif a == 3:
             x_i = [0,0,1]
+        elif a == 3:
+            x_i = [2.5,4.5,3]
         elif a == 4:
-            x_i = [0,0,20]
-        
+            x_i = [0,0,16]
         #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
         x_o = np.array([-10,0,6])
         self.INIT_XYZS =  np.vstack((x_o,x_i))
@@ -553,24 +551,20 @@ class BaseAviary(gym.Env):
 
         speed_ratio = np.empty([self.NUM_DRONES,1])
         for i in range(self.NUM_DRONES):
-            speed_ratio[i] =np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[i])/(SPEED_LIMIT*self.COLLISION_TIME)
+            speed_ratio[i] = np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[i])/(SPEED_LIMIT*self.COLLISION_TIME)
         
         self.target_vel = unit_vector_vxvyvz[0]*speed_ratio[0] * SPEED_LIMIT
         INIT_VXVYVZ = np.hstack((unit_vector_vxvyvz,speed_ratio))
-
+        v_own_init = INIT_VXVYVZ[0,0:3]*speed_ratio[0]*SPEED_LIMIT
+        v_int_init = INIT_VXVYVZ[1,0:3]*speed_ratio[1]*SPEED_LIMIT
         
         p.resetBaseVelocity(self.DRONE_IDS[0],
-                    [INIT_VXVYVZ[0,0], INIT_VXVYVZ[0,1], INIT_VXVYVZ[0,2]],
+                    [v_own_init[0], v_own_init[1], v_own_init[2]],
                     physicsClientId=self.CLIENT
                     )
 
-        #p.resetBaseVelocity(self.DRONE_IDS[1],
-        #            [INIT_VXVYVZ[1,0], INIT_VXVYVZ[1,1], INIT_VXVYVZ[1,2]],
-        #            physicsClientId=self.CLIENT
-        #            )
-
         p.resetBaseVelocity(self.DRONE_IDS[1],
-                    [0,0,0],
+                    [v_int_init[0], v_int_init[1], v_int_init[2]],
                     physicsClientId=self.CLIENT
                     )
 
