@@ -60,7 +60,7 @@ class BaseAviary(gym.Env):
                  initial_rpys=None,
                  physics: Physics=Physics.PYB,
                  freq: int=240,
-                 aggregate_phy_steps: int=1,
+                 aggregate_phy_steps: int=5,
                  gui=False,
                  record=False,
                  obstacles=False,
@@ -505,7 +505,7 @@ class BaseAviary(gym.Env):
         elif a == 4:
             x_i = [0,0,20]
         
-        #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
+        x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
         x_o = np.array([-10,0,6])
         self.INIT_XYZS =  np.vstack((x_o,x_i))
         #### Initialize the drones kinemaatic information ##########
@@ -557,10 +557,13 @@ class BaseAviary(gym.Env):
         
         self.target_vel = unit_vector_vxvyvz[0]*speed_ratio[0] * SPEED_LIMIT
         INIT_VXVYVZ = np.hstack((unit_vector_vxvyvz,speed_ratio))
+        
+        v_own_init = INIT_VXVYVZ[0,0:3]*speed_ratio[0]*SPEED_LIMIT
+        v_int_init = INIT_VXVYVZ[1,0:3]*speed_ratio[1]*SPEED_LIMIT
 
         
         p.resetBaseVelocity(self.DRONE_IDS[0],
-                    [INIT_VXVYVZ[0,0], INIT_VXVYVZ[0,1], INIT_VXVYVZ[0,2]],
+                    [v_own_init[0], v_own_init[1], v_own_init[2]],
                     physicsClientId=self.CLIENT
                     )
 
@@ -570,7 +573,7 @@ class BaseAviary(gym.Env):
         #            )
 
         p.resetBaseVelocity(self.DRONE_IDS[1],
-                    [0,0,0],
+                    [v_int_init[0], v_int_init[1], v_int_init[2]],
                     physicsClientId=self.CLIENT
                     )
 

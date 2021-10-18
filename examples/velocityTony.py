@@ -86,7 +86,7 @@ if __name__ == "__main__":
     elif a == 4:
         x_i = [0,0,20]
     
-    #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
+    x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
         #COLLISION_POINT
 
     x_o = np.array([-10,0,6]) 
@@ -159,8 +159,8 @@ if __name__ == "__main__":
                 )
 
     #Deeper NN 
-    model = PPO.load("PPO", env=env)
-    model.learn(total_timesteps=400_000) # Typically not enough
+    #model = PPO.load("PPO", env=env)
+    model.learn(total_timesteps=600_000) # Typically not enough
     model.save("PPO")
     model = PPO.load("PPO", env=env)
     #model = PPO.load("PPO_BEST_By_FAR", env=env)
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     start = time.time()
     n_trial = 0 
     for i in range(ARGS.duration_sec*env.SIM_FREQ):
-        if obs[-1] < neighbourhood_radius : 
+        if obs[-1] < neighbourhood_radius and ARGS.duration_sec*env.SIM_FREQ%AGGR_PHY_STEPS==0: 
             action, _states = model.predict(obs,
                                             deterministic=True,
                                             )
