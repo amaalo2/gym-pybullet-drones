@@ -293,7 +293,7 @@ class VelocityAviary(BaseAviary):
 
          #np.linalg.norm(self.pos[0,:]-self.GOAL_XYZ)<15  and self.collision_detector() 
 
-        if int(adjency_mat[0][1])>0 and self.collision_detector()  and np.linalg.norm(self.vel[0]-self.target_vel)<0.01 :
+        if int(adjency_mat[0][1])>0  and np.linalg.norm(self.vel[0]-self.target_vel)<0.01 :
 
 
             print(f"Action : {action}")
@@ -358,7 +358,7 @@ class VelocityAviary(BaseAviary):
             bGoal = 0
 
 
-        if int(adjency_mat[0][1])>0 and self.collision_detector(): # and np.linalg.norm(self.vel[0]-INIT_VXVYVZ[0])<1e-2 and hasattr(self,'vr') or np.linalg.norm(self.pos[0]-self.pos[1])< (1.05 * self.PROTECTED_RADIUS):
+        if int(adjency_mat[0][1])>0 : #and self.collision_detector(): # and np.linalg.norm(self.vel[0]-INIT_VXVYVZ[0])<1e-2 and hasattr(self,'vr') or np.linalg.norm(self.pos[0]-self.pos[1])< (1.05 * self.PROTECTED_RADIUS):
 
             rel_pos = self.pos[1,:]-self.pos[0,:]
             doi = np.linalg.norm(rel_pos)

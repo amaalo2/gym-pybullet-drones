@@ -497,7 +497,7 @@ class BaseAviary(gym.Env):
         a = rand.randint(1,1)
         if a == 1:
             #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
-            x_i = [19,15,15]
+            x_i = [10,0,6]
         elif a == 2:
             x_i = [7,-15,2]
         elif a == 3:

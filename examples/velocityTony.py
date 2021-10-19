@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # First row is onwship, second row is intruder
     a = rand.randint(1,1)
     if a == 1:
-        x_i = [19,15,15]
+        x_i = [10,0,6]
     elif a == 2:
         x_i = [7,-15,2]
     elif a == 3:
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     elif a == 4:
         x_i = [0,0,20]
     
-    x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
+    #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
         #COLLISION_POINT
 
     x_o = np.array([-10,0,6]) 
