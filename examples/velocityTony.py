@@ -86,7 +86,7 @@ if __name__ == "__main__":
     elif a == 4:
         x_i = [0,0,16]
     
-    #x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,14)
+    x_i = rand.uniform(8,15), rand.uniform(-9,9), 6
         #COLLISION_POINT
 
     x_o = np.array([-10,0,6]) 
@@ -159,9 +159,9 @@ if __name__ == "__main__":
                 )
 
     #Deeper NN 
-    model = PPO.load("PPO", env=env)
-    model.learn(total_timesteps=400_000) # Typically not enough
-    model.save("PPO")
+    #model = PPO.load("PPO", env=env)
+    #model.learn(total_timesteps=600_000) # Typically not enough
+    #model.save("PPO")
     model = PPO.load("PPO", env=env)
     #model = PPO.load("PPO_discrete", env=env)
 
