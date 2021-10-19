@@ -160,8 +160,8 @@ if __name__ == "__main__":
 
     #Deeper NN 
     #model = PPO.load("PPO", env=env)
-    #model.learn(total_timesteps=600_000) # Typically not enough
-    #model.save("PPO")
+    model.learn(total_timesteps=600_000) # Typically not enough
+    model.save("PPO")
     model = PPO.load("PPO", env=env)
     #model = PPO.load("PPO_BEST_By_FAR", env=env)
 

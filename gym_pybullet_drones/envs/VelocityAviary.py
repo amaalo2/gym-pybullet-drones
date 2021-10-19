@@ -291,9 +291,9 @@ class VelocityAviary(BaseAviary):
         '''
 
 
-         #np.linalg.norm(self.pos[0,:]-self.GOAL_XYZ)<15 and self.collision_detector()
+         #np.linalg.norm(self.pos[0,:]-self.GOAL_XYZ)<15  and self.collision_detector() 
 
-        if int(adjency_mat[0][1])>0  and np.linalg.norm(self.vel[0]-self.target_vel)<0.01 :
+        if int(adjency_mat[0][1])>0 and self.collision_detector()  and np.linalg.norm(self.vel[0]-self.target_vel)<0.01 :
 
 
             print(f"Action : {action}")
