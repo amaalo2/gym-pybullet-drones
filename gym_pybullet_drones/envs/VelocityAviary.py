@@ -469,7 +469,7 @@ class VelocityAviary(BaseAviary):
             #print(f"TotalReward {reward}, Turn_Angle_deg {rad2deg*turn_angle:.{precision}}, bInside {bInside}, Turn_upper {self.turn_upper*rad2deg:.{precision}}, Turn_lower {self.turn_lower*rad2deg:.{precision}}")
             #print(f"TotalReward {reward:.{precision}} \t forward_bias {forward_bias:.{precision}} \t bInside {bInside} \t deviation {deviation:.{precision}}, abhik {abhik:.{precision}}")
             
-            print(f"Reward {reward}, \t d2g {1/d2g} \t 1/doi {1/doi}")
+            #print(f"Reward {reward}, \t d2g {1/d2g} \t 1/doi {1/doi}")
             return reward
         
         else:
@@ -540,7 +540,7 @@ class VelocityAviary(BaseAviary):
         #    return True
 
         #Check for the length of the simulation
-        if self.step_counter/self.SIM_FREQ > 35:
+        if self.step_counter/self.SIM_FREQ > 50:
             #print('Times up!')
             return True
         else:
