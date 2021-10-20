@@ -317,8 +317,8 @@ class VelocityAviary(BaseAviary):
             [0,0,1]])
 
             self.target_vel = R_eulerPsi@self.vel[0]
-            print(self.GOAL_XYZ)
-            #print(f"Action : {action}, Target Velocity: {self.target_vel}")
+            #print(self.GOAL_XYZ)
+            print(f"Action : {action}, Target Velocity: {self.target_vel}")
             #self.target_vel = (action/np.linalg.norm(action))*speed_ratio[0]*SPEED_LIMIT 
             #action = np.hstack((np.vstack((action/np.linalg.norm(action),intruder_vel)),speed_ratio))
             action = np.hstack((np.vstack((self.target_vel/np.linalg.norm(self.target_vel),intruder_vel)),speed_ratio))
@@ -481,7 +481,7 @@ class VelocityAviary(BaseAviary):
             else:
                 abhik = np.min([1,-(doi-self.PROTECTED_RADIUS)/(sigma-self.PROTECTED_RADIUS)])
             
-            reward  = 1/d2g - 1/doi # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
+            reward  = forward_bias + 1/d2g - 1/doi # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
 
             #reward =  - 1/doi + bGoal + bGround  # + 1/(d2g*d2g)
             #reward  = forward_bias + goodjob + bInside - 1000/doi + bGround
