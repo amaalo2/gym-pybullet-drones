@@ -495,7 +495,7 @@ class BaseAviary(gym.Env):
 
         # First row is onwship, second row is intruder
 
-        self.GOAL_XYZ = np.array([rand.randint(0,8),rand.randint(-8,8),6])
+        self.GOAL_XYZ = np.array([9,0,6])
         a = rand.randint(1,4)
         if a == 1:
             x_i = [10,0,6]

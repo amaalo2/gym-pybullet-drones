@@ -69,7 +69,7 @@ if __name__ == "__main__":
     ARGS = parser.parse_args()
 
     #### Initialize the simulation #############################
-    GOAL_XYZ = np.array([rand.randint(0,8),rand.randint(-8,8),6])
+    GOAL_XYZ = np.array([9,0,6]) #np.array([rand.randint(0,8),rand.randint(-8,8),6])
     COLLISION_POINT = np.array([0,0,6])
     protected_radius = 1
     neighbourhood_radius = 5
@@ -159,9 +159,9 @@ if __name__ == "__main__":
                 )
 
     #Deeper NN 
-    model = PPO.load("PPO", env=env)
-    model.learn(total_timesteps=1000_000) # Typically not enough
-    model.save("PPO")
+    #model = PPO.load("PPO", env=env)
+    #model.learn(total_timesteps=4000_000) # Typically not enough
+    #model.save("PPO")
     model = PPO.load("PPO", env=env)
     #model = PPO.load("PPO_discrete", env=env)
 
