@@ -490,10 +490,12 @@ class BaseAviary(gym.Env):
         self.last_action = -1*np.ones((self.NUM_DRONES, 4))
         self.last_clipped_action = np.zeros((self.NUM_DRONES, 4))
         self.gui_input = np.zeros(4)
-        self.GOAL_XYZ = self.GOAL_XYZ_INITIAL #np.array([5,0,3])#[0,rand.randint(-2,2),rand.randint(2,4)])
+        #self.GOAL_XYZ = self.GOAL_XYZ_INITIAL #np.array([5,0,3])#[0,rand.randint(-2,2),rand.randint(2,4)])
 
 
         # First row is onwship, second row is intruder
+
+        self.GOAL_XYZ = np.array([rand.randint(0,8),rand.randint(-8,8),6])
         a = rand.randint(1,4)
         if a == 1:
             x_i = [10,0,6]

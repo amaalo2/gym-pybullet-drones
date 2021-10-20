@@ -147,9 +147,9 @@ class VelocityAviary(BaseAviary):
 
         #Hard coded for only 1 intruder 
 
-        #observation vector           x         y        vx      vy     x_i         y_i    vx_i       vy_i  doi     doi - rpz    
-        obs_lower_bound = np.array([-20.,       -20.,  -10,       -10,  -20,       -20,    -10,       -10,    0,       -10])
-        obs_upper_bound = np.array([ 20.,        20.,   10,        10,   20,        20,     10,        10,   40,       40])
+        #observation vector           x         y        vx      vy     x_i         y_i    vx_i       vy_i  doi     doi - rpz  D2GX  d2gy 
+        obs_lower_bound = np.array([-20.,       -20.,  -10,       -10,  -20,       -20,    -10,       -10,    0,       -10,   -20, -20])
+        obs_upper_bound = np.array([ 20.,        20.,   10,        10,   20,        20,     10,        10,   40,       40,     20,  20 ])
 
 
         ############################## doi      turn_upper, turn_lower        
@@ -203,8 +203,8 @@ class VelocityAviary(BaseAviary):
 
         
 
-        obs_vector = np.hstack([self.pos[0,0:2],self.vel[0,0:2],self.pos[1,0:2],self.vel[1,0:2],doi, doi - self.PROTECTED_RADIUS])
-        return obs_vector.reshape(10)
+        obs_vector = np.hstack([self.pos[0,0:2],self.vel[0,0:2],self.pos[1,0:2],self.vel[1,0:2],doi, doi - self.PROTECTED_RADIUS, d2g[0:2]])
+        return obs_vector.reshape(12)
 
         #adjacency_mat = self._getAdjacencyMatrix()
         #return {str(i): {"state": self._getDroneStateVector(i), "neighbors": adjacency_mat[i, :]} for i in range(self.NUM_DRONES)}
@@ -317,8 +317,8 @@ class VelocityAviary(BaseAviary):
             [0,0,1]])
 
             self.target_vel = R_eulerPsi@self.vel[0]
-
-            print(f"Action : {action}, Target Velocity: {self.target_vel}")
+            print(self.GOAL_XYZ)
+            #print(f"Action : {action}, Target Velocity: {self.target_vel}")
             #self.target_vel = (action/np.linalg.norm(action))*speed_ratio[0]*SPEED_LIMIT 
             #action = np.hstack((np.vstack((action/np.linalg.norm(action),intruder_vel)),speed_ratio))
             action = np.hstack((np.vstack((self.target_vel/np.linalg.norm(self.target_vel),intruder_vel)),speed_ratio))
@@ -481,7 +481,7 @@ class VelocityAviary(BaseAviary):
             else:
                 abhik = np.min([1,-(doi-self.PROTECTED_RADIUS)/(sigma-self.PROTECTED_RADIUS)])
             
-            reward  = forward_bias - 1/doi # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
+            reward  = 1/d2g - 1/doi # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
 
             #reward =  - 1/doi + bGoal + bGround  # + 1/(d2g*d2g)
             #reward  = forward_bias + goodjob + bInside - 1000/doi + bGround
