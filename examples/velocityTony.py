@@ -36,8 +36,9 @@ from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.envs.VelocityAviary import VelocityAviary
 
 
-from stable_baselines3 import  A2C, PPO, TD3
-from stable_baselines3.ppo import MlpPolicy
+from stable_baselines3 import  A2C, PPO, TD3, DQN
+#from stable_baselines3.ppo import MlpPolicy
+from stable_baselines3.dqn import MlpPolicy
 #from stable_baselines3.a2c import MlpPolicy
 #from stable_baselines3.td3 import MlpPolicy
 #from stable_baselines import  PPO2
@@ -149,20 +150,22 @@ if __name__ == "__main__":
     START = time.time() 
 
     #Start the model learning
-    policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256], qf=[256, 256, 256, 256])])
+    #policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256], qf=[256, 256, 256, 256])])
     #policy_kwargs = dict(net_arch=dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])) #For TD3, SAC, DDPG                    
-    model = PPO(MlpPolicy,
+    
+    policy_kwargs = dict(net_arch=[256, 256, 256,256])
+    model = DQN(MlpPolicy,
                 env,
                 verbose=1,
-                tensorboard_log="./ppo_drone_tensorboard/",
+                tensorboard_log="./dqn_drone_tensorboard/",
                 policy_kwargs=policy_kwargs
                 )
 
     #Deeper NN 
     #model = PPO.load("PPO", env=env)
-    #model.learn(total_timesteps=500_000) # Typically not enough
-    #model.save("PPO")
-    model = PPO.load("PPO", env=env)
+    model.learn(total_timesteps=500_000) # Typically not enough
+    model.save("DQN")
+    model = DQN.load("DQN", env=env)
     #model = PPO.load("PPO_discrete", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
