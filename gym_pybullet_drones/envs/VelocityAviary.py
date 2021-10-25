@@ -148,8 +148,8 @@ class VelocityAviary(BaseAviary):
         #Hard coded for only 1 intruder 
 
         #observation vector           x         y        vx      vy     x_i         y_i    vx_i       vy_i  doi     doi - rpz  D2GX  d2gy 
-        obs_lower_bound = np.array([-20.,       -20.,  -10,       -10,  -20,       -20,    -10,       -10,    0,       -10,   -20, -20])
-        obs_upper_bound = np.array([ 20.,        20.,   10,        10,   20,        20,     10,        10,   40,       40,     20,  20 ])
+        obs_lower_bound = np.array([-40.,       -40.,  -20,       -20,      -10,   -20, -20])
+        obs_upper_bound = np.array([ 40.,        40.,   20,        20,      40,     20,  20 ])
 
 
         ############################## doi      turn_upper, turn_lower        
@@ -203,8 +203,8 @@ class VelocityAviary(BaseAviary):
 
         
 
-        obs_vector = np.hstack([self.pos[0,0:2],self.vel[0,0:2],self.pos[1,0:2],self.vel[1,0:2],doi, doi - self.PROTECTED_RADIUS, d2g[0:2]])
-        return obs_vector.reshape(12)
+        obs_vector = np.hstack([self.pos[0,0:2]-self.pos[1,0:2],self.vel[0,0:2]-self.vel[1,0:2], doi - self.PROTECTED_RADIUS, d2g[0:2]])
+        return obs_vector.reshape(7)
 
         #adjacency_mat = self._getAdjacencyMatrix()
         #return {str(i): {"state": self._getDroneStateVector(i), "neighbors": adjacency_mat[i, :]} for i in range(self.NUM_DRONES)}
