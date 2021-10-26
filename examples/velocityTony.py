@@ -160,11 +160,11 @@ if __name__ == "__main__":
                 tensorboard_log="./dqn_drone_tensorboard/",
                 policy_kwargs=policy_kwargs,
                 gamma = 0.99,
-                exploration_fraction = 0.1
+                exploration_fraction = 0.8
                 )
 
     #Deeper NN 
-    #model = PPO.load("PPO", env=env)
+    #model = DQN.load("DQN", env=env)
     #model.learn(total_timesteps=500_000) # Typically not enough
     #model.save("DQN")
     model = DQN.load("DQN", env=env)

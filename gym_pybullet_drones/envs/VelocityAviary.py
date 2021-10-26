@@ -353,7 +353,7 @@ class VelocityAviary(BaseAviary):
 
     ################################################################################
 
-    def _computeReward(self):
+    def _computeReward(self,action):
         """Computes the current reward value(s).
 
         Adds reward by evaluating the inverse of the distance to the goal 
@@ -478,8 +478,14 @@ class VelocityAviary(BaseAviary):
             
             abhik = np.min([1,(doi-self.PROTECTED_RADIUS)/(sigma-self.PROTECTED_RADIUS)])
 
-            
-            reward  = 0.01 * forward_bias + abhik + bInside # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
+            if action == 0:
+                abhik_forward = 0.5
+            else:
+                abhik_forward = 0
+                
+
+
+            reward  = abhik_forward+  abhik + bInside # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
 
             #reward =  - 1/doi + bGoal + bGround  # + 1/(d2g*d2g)
             #reward  = forward_bias + goodjob + bInside - 1000/doi + bGround
