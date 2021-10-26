@@ -479,7 +479,7 @@ class VelocityAviary(BaseAviary):
             abhik = np.min([1,(doi-self.PROTECTED_RADIUS)/(sigma-self.PROTECTED_RADIUS)])
 
             
-            reward  = forward_bias + abhik + bInside # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
+            reward  = 0.01 * forward_bias + abhik + bInside # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
 
             #reward =  - 1/doi + bGoal + bGround  # + 1/(d2g*d2g)
             #reward  = forward_bias + goodjob + bInside - 1000/doi + bGround
