@@ -361,6 +361,7 @@ class BaseAviary(gym.Env):
         #### Save, preprocess, and clip the action to the max. RPM #
         else:
             self._saveLastAction(action)
+            self._saveLastObservation(self._computeObs())
             clipped_action = np.reshape(self._preprocessAction(action), (self.NUM_DRONES, 4))
         #### Repeat for as many as the aggregate physics steps #####
         for _ in range(self.AGGR_PHY_STEPS):
@@ -986,6 +987,24 @@ class BaseAviary(gym.Env):
             res_action = np.resize(action, (1, 4)) # Resize, possibly with repetition, to cope with different action spaces in RL subclasses
             #self.last_action = np.reshape(res_action, (self.NUM_DRONES, 4))
             self.last_action = res_action
+
+    ################################################################################
+
+    def _saveLastObservation(self, 
+                            observation
+                            ):
+        """Stores the most recent observation into attribute `self.last_observation`.
+
+        The last observations can be used in the reward function.
+
+        Parameters
+        ----------
+        action : ndarray | dict
+            (4)-shaped array of ints (or dictionary of arrays) containing the current RPMs input.
+
+        """
+
+        self.last_observation = observation
 
     ################################################################################
 
