@@ -370,8 +370,8 @@ class VelocityAviary(BaseAviary):
         INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/self.COLLISION_TIME #/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
         
         
-        if np.linalg.norm(self.pos[0]-self.pos[1])< (1.5 * self.PROTECTED_RADIUS):
-            bInside = -100
+        if np.linalg.norm(self.pos[0]-self.pos[1])< (1 * self.PROTECTED_RADIUS):
+            bInside = -10
         else:
             bInside = 0
 
@@ -485,7 +485,7 @@ class VelocityAviary(BaseAviary):
                 
 
 
-            reward  = forward_bias - 10/doi + bInside # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
+            reward  = forward_bias - 10/doi + bInside + goodjob # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
 
             #reward =  - 1/doi + bGoal + bGround  # + 1/(d2g*d2g)
             #reward  = forward_bias + goodjob + bInside - 1000/doi + bGround
@@ -526,7 +526,7 @@ class VelocityAviary(BaseAviary):
             #Don't compute the distance between the ownship and itself
             if j==0:
                 pass
-            elif np.linalg.norm(ownship[0:3]-intruder[0:3])<1.05*self.PROTECTED_RADIUS:
+            elif np.linalg.norm(ownship[0:3]-intruder[0:3])<self.PROTECTED_RADIUS:
                 print('Crash')
                 return True
 
