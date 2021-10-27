@@ -164,8 +164,8 @@ if __name__ == "__main__":
 
     #Deeper NN 
     #model = DQN.load("DQN", env=env)
-    #model.learn(total_timesteps=500_000) # Typically not enough
-    #model.save("DQN")
+    model.learn(total_timesteps=500_000) # Typically not enough
+    model.save("DQN")
     model = DQN.load("DQN", env=env)
     #model = PPO.load("PPO_discrete", env=env)
 

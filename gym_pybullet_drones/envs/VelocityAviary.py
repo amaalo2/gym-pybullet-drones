@@ -485,7 +485,7 @@ class VelocityAviary(BaseAviary):
                 
 
 
-            reward  = forward_bias +  bInside # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
+            reward  = forward_bias - 10/doi + bInside # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
 
             #reward =  - 1/doi + bGoal + bGround  # + 1/(d2g*d2g)
             #reward  = forward_bias + goodjob + bInside - 1000/doi + bGround
