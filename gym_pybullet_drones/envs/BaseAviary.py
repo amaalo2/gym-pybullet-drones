@@ -497,7 +497,7 @@ class BaseAviary(gym.Env):
         # First row is onwship, second row is intruder
 
         self.GOAL_XYZ = np.array([9,0,6])
-        a = rand.randint(1,4)
+        a = rand.randint(1,1)
         if a == 1:
             x_i = [10,0,6]
         elif a == 2:
@@ -506,7 +506,7 @@ class BaseAviary(gym.Env):
             x_i = [2.5,4.5,3]
         elif a == 4:
             x_i = [0,0,16]
-        x_i = rand.uniform(8,15), rand.uniform(-9,9), 6
+        #x_i = rand.uniform(8,15), rand.uniform(-9,9), 6
         x_o = np.array([-10,0,6])
         self.INIT_XYZS =  np.vstack((x_o,x_i))
         #### Initialize the drones kinemaatic information ##########

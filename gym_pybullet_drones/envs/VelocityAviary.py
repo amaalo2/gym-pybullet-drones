@@ -548,9 +548,9 @@ class VelocityAviary(BaseAviary):
 
 
         #Check if the ownship reached the goal
-        #if np.linalg.norm(ownship[0:3]-self.GOAL_XYZ) < 0.5:
-        #    print('Reached the goal')
-        #    return True
+        if np.linalg.norm(ownship[0:3]-self.GOAL_XYZ) < 1*self.PROTECTED_RADIUS:
+            print('Reached the goal')
+            return True
 
         dir_vector = (self.GOAL_XYZ-self.INIT_XYZS[0,:])/np.linalg.norm(self.GOAL_XYZ-self.INIT_XYZS[0,:])
         n = np.cross(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0]))
@@ -572,7 +572,7 @@ class VelocityAviary(BaseAviary):
         #    return True
 
         #Check for the length of the simulation
-        if self.step_counter/self.SIM_FREQ > 35:
+        if self.step_counter/self.SIM_FREQ > 50:
             print('Times up!')
             return True
         else:
