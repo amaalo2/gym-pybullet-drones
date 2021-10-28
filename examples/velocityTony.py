@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
 
     # First row is onwship, second row is intruder
-    a = rand.randint(1,1)
+    a = rand.randint(1,4)
     if a == 1:
         x_i = [10,0,6]
     elif a == 2:
