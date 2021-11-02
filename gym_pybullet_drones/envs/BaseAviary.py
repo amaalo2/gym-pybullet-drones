@@ -131,6 +131,13 @@ class BaseAviary(gym.Env):
         self.GOAL_RADIUS = goal_radius
         self.COLLISION_TIME = collision_time
 
+        #### Evaluation Metrics #################################
+        self.nGoalReached = 0
+        self.nCrash = 0
+        self.nTimeout = 0
+        self.nOutside = 0
+        self.nHitTheGround = 0
+
         #### Load the drone properties from the .urdf file #########
         self.M, \
         self.L, \
@@ -506,9 +513,16 @@ class BaseAviary(gym.Env):
             x_i = [2.5,4.5,3]
         elif a == 4:
             x_i = [0,0,16]
-        x_i = rand.uniform(8,15), rand.uniform(-9,9), 6
-        x_o = np.array([-10,0,6])
-        self.INIT_XYZS =  np.vstack((x_o,x_i))
+        #x_i = rand.uniform(8,15), rand.uniform(-9,9), 6
+        #x_o = np.array([-10,0,6])
+        self.INIT_XYZS =  np.array([
+                          [0,   0, 6],
+                          [18,  0, 6],
+                          [0,  18, 6],
+                          [-18, 0, 6],
+                          [0,  18, 6],
+                          ])
+                          #np.vstack((x_o,x_i))
         #### Initialize the drones kinemaatic information ##########
         self.pos = np.zeros((self.NUM_DRONES, 3))
         self.quat = np.zeros((self.NUM_DRONES, 4))
@@ -561,13 +575,29 @@ class BaseAviary(gym.Env):
         v_own_init = INIT_VXVYVZ[0,0:3]*speed_ratio[0]*SPEED_LIMIT
         v_int_init = INIT_VXVYVZ[1,0:3]*speed_ratio[1]*SPEED_LIMIT
         
+
         p.resetBaseVelocity(self.DRONE_IDS[0],
                     [v_own_init[0], v_own_init[1], v_own_init[2]],
                     physicsClientId=self.CLIENT
                     )
 
         p.resetBaseVelocity(self.DRONE_IDS[1],
-                    [v_int_init[0], v_int_init[1], v_int_init[2]],
+                    [0,0,0],
+                    physicsClientId=self.CLIENT
+                    )
+
+        p.resetBaseVelocity(self.DRONE_IDS[2],
+                    [0,0,0],
+                    physicsClientId=self.CLIENT
+                    )
+
+        p.resetBaseVelocity(self.DRONE_IDS[3],
+                    [0,0,0],
+                    physicsClientId=self.CLIENT
+                    )
+
+        p.resetBaseVelocity(self.DRONE_IDS[4],
+                    [0,0,0],
                     physicsClientId=self.CLIENT
                     )
 

@@ -108,16 +108,16 @@ class VelocityAviary(BaseAviary):
 
 
 
-        #act_lower_bound = np.array([0, -1, 0])
-        #act_upper_bound = np.array([1,  1, 0])
-        #return spaces.Box(low=act_lower_bound,
-        #                  high=act_upper_bound,
-        #                  dtype=np.float32)
+        act_lower_bound = np.array([-1, -1, 0])
+        act_upper_bound = np.array([1,  1, 0])
+        return spaces.Box(low=act_lower_bound,
+                          high=act_upper_bound,
+                          dtype=np.float32)
     
 
         #actions = np.array([i for i in range(-90,93,3)])*np.pi/180
 
-        return spaces.Discrete(3)
+        #return spaces.Discrete(3)
 
     ################################################################################
 
@@ -148,8 +148,13 @@ class VelocityAviary(BaseAviary):
         #Hard coded for only 1 er 
 
         #observation vector           x         y        vx      vy     x_i         y_i    vx_i       vy_i  doi - rpz     D2GX  d2gy 
-        obs_lower_bound = np.array([-20.,       -20.,  -10,       -10,  -20,       -20,    -10,       -10,   -10,         -40, -40])
-        obs_upper_bound = np.array([ 20.,        20.,   10,        10,   20,        20,     10,        10,   40,           40,  40 ])
+        #obs_lower_bound = np.array([-20.,       -20.,  -10,       -10,  -20,       -20,    -10,       -10,   -10,         -40, -40])
+        #obs_upper_bound = np.array([ 20.,        20.,   10,        10,   20,        20,     10,        10,   40,           40,  40 ])
+
+        #Aouf
+        #observation vector           x         y    doi   doi    doi   doi  D2GX  d2gy 
+        obs_lower_bound = np.array([-40.,     -40.,  -10,  -10,   -10,  -10,  -40, -40])
+        obs_upper_bound = np.array([ 40.,      40.,   50,   50,    50,   50,   40,  40 ])
 
 
         ############################## doi      turn_upper, turn_lower        
@@ -201,10 +206,13 @@ class VelocityAviary(BaseAviary):
         #obs_vector = np.hstack([doi, self.turn_upper, self.turn_lower])
         #return obs_vector.reshape(3)
 
-        
+        doi1 = np.linalg.norm(self.pos[1,0:2]-self.pos[0,0:2]) - self.PROTECTED_RADIUS
+        doi2 = np.linalg.norm(self.pos[2,0:2]-self.pos[0,0:2]) - self.PROTECTED_RADIUS
+        doi3 = np.linalg.norm(self.pos[3,0:2]-self.pos[0,0:2]) - self.PROTECTED_RADIUS
+        doi4 = np.linalg.norm(self.pos[4,0:2]-self.pos[0,0:2]) - self.PROTECTED_RADIUS
 
-        obs_vector = np.hstack([self.pos[0,0:2],self.vel[0,0:2],self.pos[1,0:2],self.vel[1,0:2], doi - self.PROTECTED_RADIUS, d2g[0:2]])
-        return obs_vector.reshape(11)
+        obs_vector = np.hstack([self.pos[0,0:2],doi1,doi2,doi3,doi4, d2g[0:2]])
+        return obs_vector.reshape(8)
 
         #adjacency_mat = self._getAdjacencyMatrix()
         #return {str(i): {"state": self._getDroneStateVector(i), "neighbors": adjacency_mat[i, :]} for i in range(self.NUM_DRONES)}
@@ -318,7 +326,7 @@ class VelocityAviary(BaseAviary):
 
             self.target_vel = R_eulerPsi@self.vel[0]
             #print(self.GOAL_XYZ)
-            #print(f"Action : {action}, Target Velocity: {self.target_vel}")
+            print(f"Action : {action}, Target Velocity: {self.target_vel}")
             #self.target_vel = (action/np.linalg.norm(action))*speed_ratio[0]*SPEED_LIMIT 
             #action = np.hstack((np.vstack((action/np.linalg.norm(action),intruder_vel)),speed_ratio))
             action = np.hstack((np.vstack((self.target_vel/np.linalg.norm(self.target_vel),intruder_vel)),speed_ratio))
@@ -501,7 +509,7 @@ class VelocityAviary(BaseAviary):
             #print(f"TotalReward {reward:.{precision}} \t forward_bias {forward_bias:.{precision}} \t bInside {bInside} \t deviation {deviation:.{precision}}, abhik {abhik:.{precision}}")
             
             #print(f"Reward {reward}, \t d2g {1/d2g} \t 1/doi {1/doi}")
-            print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[0:2]-self.GOAL_XYZ[0:2]) - np.linalg.norm(self.pos[0,0:2]-self.GOAL_XYZ[0:2])}, \t d2g {d2g}")
+            #print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[0:2]-self.GOAL_XYZ[0:2]) - np.linalg.norm(self.pos[0,0:2]-self.GOAL_XYZ[0:2])}, \t d2g {d2g}")
             return reward
         
         else:
@@ -522,34 +530,40 @@ class VelocityAviary(BaseAviary):
 
         """
 
+        protected_rad_gain = [25/2,8,5,10]
         #Checks for a collision
         for j in range(self.NUM_DRONES):
             ownship  = self._getDroneStateVector(int(0))
             intruder = self._getDroneStateVector(int(j))
+
         
             #Don't compute the distance between the ownship and itself
             if j==0:
                 pass
-            elif np.linalg.norm(ownship[0:3]-intruder[0:3])<self.PROTECTED_RADIUS:
+            elif np.linalg.norm(ownship[0:3]-intruder[0:3])<self.PROTECTED_RADIUS*protected_rad_gain[j]:
                 print('Crash')
+                self.nCrash +=1
                 return True
 
         
         #Check if the ownship is on the ground
         if ownship[2]<0.1:
             print('Hit the ground')
+            self.nHitTheGround += 1
             return True
 
 
         #Check if the ownship is outside the domain
         if np.linalg.norm(ownship[0:3]-self.GOAL_XYZ) > 40:
             print('Outside the domain')
+            self.nOutside += 1
             return True
 
 
         #Check if the ownship reached the goal
         if np.linalg.norm(ownship[0:3]-self.GOAL_XYZ) < 1*self.PROTECTED_RADIUS:
             print('Reached the goal')
+            self.nGoalReached +=1
             return True
 
         dir_vector = (self.GOAL_XYZ-self.INIT_XYZS[0,:])/np.linalg.norm(self.GOAL_XYZ-self.INIT_XYZS[0,:])
@@ -574,6 +588,7 @@ class VelocityAviary(BaseAviary):
         #Check for the length of the simulation
         if self.step_counter/self.SIM_FREQ > 50:
             print('Times up!')
+            self.nTimeout +=1
             return True
         else:
             return False
@@ -594,8 +609,16 @@ class VelocityAviary(BaseAviary):
             Dummy value.
 
         """
-        return {"answer": 42} #### Calculated by the Deep Thought supercomputer in 7.5M years
 
+        totalRuns = (self.nHitTheGround+self.nOutside + self.nCrash + self.nTimeout + self.nGoalReached)
+        info = {"nHitTheGround":self.nHitTheGround, 
+                "nOutside":self.nOutside, 
+                "nCrash":self.nCrash, 
+                "nTimeouts":self.nTimeout, 
+                "nGoalReached":self.nGoalReached,
+                "Total Runs": totalRuns}
+        #return {"answer": 42} #### Calculated by the Deep Thought supercomputer in 7.5M years
+        return info
 ################################################################################
     def collision_detector(self):
 

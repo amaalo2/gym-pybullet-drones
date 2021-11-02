@@ -54,7 +54,7 @@ if __name__ == "__main__":
     #### Define and parse (optional) arguments for the script ##
     parser = argparse.ArgumentParser(description='Velocity control example using VelocityAviary')
     parser.add_argument('--drone',              default="cf2x",     type=DroneModel,    help='Drone model (default: CF2X)', metavar='', choices=DroneModel)
-    parser.add_argument('--num_drones',         default=2,          type=int,           help='Number of Drones used for the simulation', metavar='')
+    parser.add_argument('--num_drones',         default=5,          type=int,           help='Number of Drones used for the simulation', metavar='')
     parser.add_argument('--gui',                default=True,       type=str2bool,      help='Whether to use PyBullet GUI (default: True)', metavar='')
     parser.add_argument('--record_video',       default=False,      type=str2bool,      help='Whether to record a video (default: False)', metavar='')
     parser.add_argument('--plot',               default=True,       type=str2bool,      help='Whether to plot the simulation results (default: True)', metavar='')
@@ -63,14 +63,14 @@ if __name__ == "__main__":
     parser.add_argument('--obstacles',          default=False,      type=str2bool,      help='Whether to add obstacles to the environment (default: True)', metavar='')
     parser.add_argument('--simulation_freq_hz', default=240,        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=50,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
+    parser.add_argument('--duration_sec',       default=3000,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
     parser.add_argument('--collision_time',     default=20,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
     ARGS = parser.parse_args()
 
     #### Initialize the simulation #############################
-    GOAL_XYZ = np.array([9,0,6]) #np.array([rand.randint(0,8),rand.randint(-8,8),6])
+    GOAL_XYZ = np.array([18,18,6]) #np.array([rand.randint(0,8),rand.randint(-8,8),6])
     COLLISION_POINT = np.array([0,0,6])
     protected_radius = 1
     neighbourhood_radius = 5
@@ -90,12 +90,23 @@ if __name__ == "__main__":
     #x_i = rand.uniform(8,15), rand.uniform(-9,9), 6
         #COLLISION_POINT
 
-    x_o = np.array([-10,0,6]) 
+    x_o = np.array([0,0,6]) 
 
-    INIT_XYZS = np.vstack((x_o,x_i))
+    #INIT_XYZS = np.vstack((x_o,x_i))
+   
+    INIT_XYZS = np.array([
+                          [0,   0, 6],
+                          [18,  0, 6],
+                          [0,  18, 6],
+                          [-18, 0, 6],
+                          [0,  18, 6],
+                          ])
 
     # Initial attitude of the ownship and intruder
     INIT_RPYS = np.array([
+                          [0, 0, 0],
+                          [0, 0, 0],
+                          [0, 0, 0],
                           [0, 0, 0],
                           [0, 0, 0],
                           ])
@@ -201,6 +212,8 @@ if __name__ == "__main__":
             n_trial+=1
             obs = env.reset()
             print(f"Run # {n_trial}")
+            #break
+    print(info)
     env.close()
     logger.save()
     logger.plot()
