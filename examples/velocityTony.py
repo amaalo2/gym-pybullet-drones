@@ -38,12 +38,13 @@ from gym_pybullet_drones.envs.VelocityAviary import VelocityAviary
 
 from stable_baselines3 import  A2C, PPO, TD3, DQN
 #from stable_baselines3.ppo import MlpPolicy
-from stable_baselines3.dqn import MlpPolicy
+#from stable_baselines3.dqn import MlpPolicy
 #from stable_baselines3.a2c import MlpPolicy
-#from stable_baselines3.td3 import MlpPolicy
+from stable_baselines3.td3 import MlpPolicy
 #from stable_baselines import  PPO2
 #from stable_baselines.common.policies import MlpLstmPolicy
 #from stable_baselines.common import make_vec_env
+from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.env_checker import check_env
 import ray
 from ray.tune import register_env
@@ -63,17 +64,19 @@ if __name__ == "__main__":
     parser.add_argument('--obstacles',          default=False,      type=str2bool,      help='Whether to add obstacles to the environment (default: True)', metavar='')
     parser.add_argument('--simulation_freq_hz', default=240,        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=3000,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
+    parser.add_argument('--duration_sec',       default=200,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
     parser.add_argument('--collision_time',     default=20,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
     ARGS = parser.parse_args()
 
     #### Initialize the simulation #############################
-    GOAL_XYZ = np.array([18,18,6]) #np.array([rand.randint(0,8),rand.randint(-8,8),6])
+    th = rand.uniform(0,np.pi/2)
+    GOAL_XYZ = np.array([45*np.cos(th),45*np.sin(th),6]) #np.array([rand.randint(0,8),rand.randint(-8,8),6])
     COLLISION_POINT = np.array([0,0,6])
     protected_radius = 1
     neighbourhood_radius = 5
+
 
 
     # First row is onwship, second row is intruder
@@ -164,20 +167,40 @@ if __name__ == "__main__":
     #policy_kwargs = dict(net_arch=[dict(pi=[256, 256, 256, 256], qf=[256, 256, 256, 256])])
     #policy_kwargs = dict(net_arch=dict(pi=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256], qf=[256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256, 256])) #For TD3, SAC, DDPG                    
     
-    policy_kwargs = dict(net_arch=[256, 256, 256,256])
-    model = DQN(MlpPolicy,
+    #policy_kwargs = dict(net_arch=[256, 256, 256,256])
+    policy_kwargs = dict(net_arch=[19,64,64])
+    n_actions = env.action_space.shape[-1]
+    action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
+
+    model = TD3(MlpPolicy,
                 env,
                 verbose=1,
-                tensorboard_log="./dqn_drone_tensorboard/",
+                tensorboard_log="./td3_drone_tensorboard/",
                 policy_kwargs=policy_kwargs,
-                exploration_fraction = 0.4
+                batch_size = 128,
+                tau = 0.005,
+                learning_rate = 0.0003,
+                learning_starts = 1000,
+                action_noise = action_noise,
                 )
 
+#  mini-batch size  =                           0.005
+#  replay buffer size =                         50000
+#  discount factor =                            0.99
+#  learning rate =                              0.0003 
+#  soft update coefficient=                     0.005
+#  policy update delay =                        2
+#  random exploration steps =                   1000
+#  square deviation of exploration noise =      0.1
+
+#Last 2, I did not integrate them 
+
+
     #Deeper NN 
-    #model = DQN.load("DQN", env=env)
-    #model.learn(total_timesteps=5000_000) # Typically not enough
-    #model.save("DQN")
-    model = DQN.load("DQN", env=env)
+    model = TD3.load("TD3", env=env)
+    #model.learn(total_timesteps=500_000) # Typically not enough
+    #model.save("TD3")
+    #model = TD3.load("TD3", env=env)
     #model = PPO.load("PPO_discrete", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
@@ -212,7 +235,7 @@ if __name__ == "__main__":
             n_trial+=1
             obs = env.reset()
             print(f"Run # {n_trial}")
-            #break
+            break
     print(info)
     env.close()
     logger.save()

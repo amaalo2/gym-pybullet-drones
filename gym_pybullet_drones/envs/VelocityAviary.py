@@ -108,8 +108,8 @@ class VelocityAviary(BaseAviary):
 
 
 
-        act_lower_bound = np.array([-1, -1, 0])
-        act_upper_bound = np.array([1,  1, 0])
+        act_lower_bound = np.array([-1, -1])
+        act_upper_bound = np.array([1,  1])
         return spaces.Box(low=act_lower_bound,
                           high=act_upper_bound,
                           dtype=np.float32)
@@ -153,8 +153,8 @@ class VelocityAviary(BaseAviary):
 
         #Aouf
         #observation vector           x         y    doi   doi    doi   doi  D2GX  d2gy 
-        obs_lower_bound = np.array([-40.,     -40.,  -10,  -10,   -10,  -10,  -40, -40])
-        obs_upper_bound = np.array([ 40.,      40.,   50,   50,    50,   50,   40,  40 ])
+        obs_lower_bound = np.array([-80.,     -80.,  -10,  -10,   -10,  -10,  -80, -80])
+        obs_upper_bound = np.array([ 80.,      80.,   80,   80,    80,   80,   80,  80 ])
 
 
         ############################## doi      turn_upper, turn_lower        
@@ -191,7 +191,7 @@ class VelocityAviary(BaseAviary):
 
 
         INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/10
-        turn_angle = np.abs(np.arccos(np.dot(INIT_VXVYVZ[0]/np.linalg.norm(INIT_VXVYVZ[0]),self.vel[0]/np.linalg.norm(self.vel[0]))))
+        #turn_angle = np.abs(np.arccos(np.dot(INIT_VXVYVZ[0]/np.linalg.norm(INIT_VXVYVZ[0]),self.vel[0]/np.linalg.norm(self.vel[0]))))
 
         if hasattr(self, 'turn_upper'):
             pass
@@ -244,21 +244,26 @@ class VelocityAviary(BaseAviary):
         
         SPEED_LIMIT = 0.5*self.MAX_SPEED_KMH * (1000/3600)
 
-        ownship_vel = (self.COLLISION_POINT - self.INIT_XYZS[0])/ np.linalg.norm(self.COLLISION_POINT - self.INIT_XYZS[0])
-        intruder_vel = (self.COLLISION_POINT - self.INIT_XYZS[1])/ np.linalg.norm(self.COLLISION_POINT - self.INIT_XYZS[1])
-        #intruder_vel = [0,0,0] # non moving  boy
+        ownship_vel = (self.GOAL_XYZ - self.INIT_XYZS[0])/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS[0])
+        #intruder_vel = (self.COLLISION_POINT - self.INIT_XYZS[1])/ np.linalg.norm(self.COLLISION_POINT - self.INIT_XYZS[1])
+        intruder_vel = np.array([[0,0,0],[0,0,0],[0,0,0],[0,0,0]]) # non moving  boy
         
         unit_vector_vxvyvz = np.vstack((ownship_vel,intruder_vel))
 
 
-        speed_ratio = np.empty([self.NUM_DRONES,1])
-        for i in range(self.NUM_DRONES):
-            speed_ratio[i] =np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[i])/(SPEED_LIMIT*self.COLLISION_TIME)
+        #speed_ratio = np.empty([self.NUM_DRONES,1])
+        #for i in range(self.NUM_DRONES):
+        #    speed_ratio[i] =np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[i])/(SPEED_LIMIT*self.COLLISION_TIME)
         
+        speed_ratio = np.array([[0.12],[0],[0],[0],[0]])
+
+
         #self.target_vel = unit_vector_vxvyvz[0]*speed_ratio[0]*SPEED_LIMIT 
-        INIT_VXVYVZ2 = np.hstack((unit_vector_vxvyvz,speed_ratio))
+        #INIT_VXVYVZ2 = np.hstack((unit_vector_vxvyvz,speed_ratio))
         adjency_mat = self._getAdjacencyMatrix()        
         
+        action = np.hstack((action,0))
+        print(f"Action outside {action} \t current vel {self.vel[0]} \t target vel {self.target_vel} \t Pos {self.pos[0]} \t Goal {self.GOAL_XYZ}")
         '''
         INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
         speed_ratio = np.empty([self.NUINIT_VXVYVZM_DRONES,1])
@@ -310,26 +315,26 @@ class VelocityAviary(BaseAviary):
             #if heading > np.pi/2:
             #    heading = -(heading - np.pi/2)
             
-            if action==0:
-                #go straight
-                eulerPsi = 0 
-            elif action==1:
-                #turn left
-                eulerPsi = 3 * (np.pi/180) 
-            else :
-                #turn right
-                eulerPsi = -3 * (np.pi/180)
-            
-            R_eulerPsi = np.array([[np.cos(eulerPsi),-np.sin(eulerPsi),0],
-            [np.sin(eulerPsi),np.cos(eulerPsi),0],
-            [0,0,1]])
+            #if action==0:
+            #    #go straight
+            #    eulerPsi = 0 
+            #elif action==1:
+            #    #turn left
+            #    eulerPsi = 3 * (np.pi/180) 
+            #else :
+            #    #turn right
+            #    eulerPsi = -3 * (np.pi/180)
+            #
+            #R_eulerPsi = np.array([[np.cos(eulerPsi),-np.sin(eulerPsi),0],
+            #[np.sin(eulerPsi),np.cos(eulerPsi),0],
+            #[0,0,1]])
 
-            self.target_vel = R_eulerPsi@self.vel[0]
+            #self.target_vel = R_eulerPsi@self.vel[0]
             #print(self.GOAL_XYZ)
-            print(f"Action : {action}, Target Velocity: {self.target_vel}")
-            #self.target_vel = (action/np.linalg.norm(action))*speed_ratio[0]*SPEED_LIMIT 
-            #action = np.hstack((np.vstack((action/np.linalg.norm(action),intruder_vel)),speed_ratio))
-            action = np.hstack((np.vstack((self.target_vel/np.linalg.norm(self.target_vel),intruder_vel)),speed_ratio))
+            self.target_vel = (action/np.linalg.norm(action))*speed_ratio[0]*SPEED_LIMIT 
+            action = np.hstack((np.vstack((action/np.linalg.norm(action),intruder_vel)),speed_ratio))
+            #print(f"Action : {action/np.linalg.norm(action)*speed_ratio[0]*SPEED_LIMIT}, Target Velocity: {self.target_vel}")
+            #action = np.hstack((np.vstack((self.target_vel/np.linalg.norm(self.target_vel),intruder_vel)),speed_ratio))
         else:
             try:
                 action = np.hstack((np.vstack((self.target_vel,intruder_vel)),speed_ratio))
@@ -417,13 +422,13 @@ class VelocityAviary(BaseAviary):
 
             
 
-            dir_vector = (self.COLLISION_POINT-self.INIT_XYZS[0,:])/np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[0,:])
-            n = np.cross(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0]))
+            #dir_vector = (self.COLLISION_POINT-self.INIT_XYZS[0,:])/np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[0,:])
+            #n = np.cross(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0]))
             
-            if n[-1]>0:
-                turn_angle_sign = 1
-            else:
-                turn_angle_sign = -1
+            #if n[-1]>0:
+            #    turn_angle_sign = 1
+            #else:
+            #    turn_angle_sign = -1
 
             #turn_angle = turn_angle_sign * self.turn_angle[0] #* np.arccos(np.dot(dir_vector,self.vel[0]/np.linalg.norm(self.vel[0])))
             
@@ -435,7 +440,7 @@ class VelocityAviary(BaseAviary):
 
             #_,turn_upper, turn_lower,_ = self.velocity_obstacle()
 
-            d = -0.1*np.linalg.norm(np.cross((self.INIT_XYZS[0,:]-self.pos[0,:]),dir_vector))/np.linalg.norm(dir_vector)
+            #d = -0.1*np.linalg.norm(np.cross((self.INIT_XYZS[0,:]-self.pos[0,:]),dir_vector))/np.linalg.norm(dir_vector)
 
 
             angle_penalty = 0
@@ -486,10 +491,10 @@ class VelocityAviary(BaseAviary):
             
             #abhik = np.min([1,(doi**2-self.PROTECTED_RADIUS**2)/(sigma-self.PROTECTED_RADIUS)])
 
-            if action == 0:
-                abhik_forward = 0.5
-            else:
-                abhik_forward = 0
+            #if action == 0:
+            #    abhik_forward = 0.5
+            #else:
+            #    abhik_forward = 0
                 
             ## Nabil Aouf paper Explainable Deep Reinforcement Learning for UAV Autonomous Navigation
             C = 0
@@ -509,7 +514,7 @@ class VelocityAviary(BaseAviary):
             #print(f"TotalReward {reward:.{precision}} \t forward_bias {forward_bias:.{precision}} \t bInside {bInside} \t deviation {deviation:.{precision}}, abhik {abhik:.{precision}}")
             
             #print(f"Reward {reward}, \t d2g {1/d2g} \t 1/doi {1/doi}")
-            #print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[0:2]-self.GOAL_XYZ[0:2]) - np.linalg.norm(self.pos[0,0:2]-self.GOAL_XYZ[0:2])}, \t d2g {d2g}")
+            #print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[0:2]-self.GOAL_XYZ[0:2]) - np.linalg.norm(self.pos[0,0:2]-self.GOAL_XYZ[0:2])}, \t d2g {d2g} \t Goal {self.GOAL_XYZ}")
             return reward
         
         else:
@@ -540,7 +545,7 @@ class VelocityAviary(BaseAviary):
             #Don't compute the distance between the ownship and itself
             if j==0:
                 pass
-            elif np.linalg.norm(ownship[0:3]-intruder[0:3])<self.PROTECTED_RADIUS*protected_rad_gain[j]:
+            elif np.linalg.norm(ownship[0:3]-intruder[0:3])<self.PROTECTED_RADIUS*protected_rad_gain[j-1]:
                 print('Crash')
                 self.nCrash +=1
                 return True
@@ -554,7 +559,7 @@ class VelocityAviary(BaseAviary):
 
 
         #Check if the ownship is outside the domain
-        if np.linalg.norm(ownship[0:3]-self.GOAL_XYZ) > 40:
+        if np.linalg.norm(ownship[0:3]-self.GOAL_XYZ) > 200:
             print('Outside the domain')
             self.nOutside += 1
             return True
@@ -586,7 +591,7 @@ class VelocityAviary(BaseAviary):
         #    return True
 
         #Check for the length of the simulation
-        if self.step_counter/self.SIM_FREQ > 50:
+        if self.step_counter/self.SIM_FREQ > 200:
             print('Times up!')
             self.nTimeout +=1
             return True

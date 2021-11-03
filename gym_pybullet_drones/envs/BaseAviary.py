@@ -503,7 +503,10 @@ class BaseAviary(gym.Env):
 
         # First row is onwship, second row is intruder
 
-        self.GOAL_XYZ = np.array([9,0,6])
+        #self.GOAL_XYZ = np.array([9,0,6])
+        th = rand.uniform(0,np.pi/2)
+        self.GOAL_XYZ = np.array([45*np.cos(th),45*np.sin(th),6])
+        
         a = rand.randint(1,4)
         if a == 1:
             x_i = [10,0,6]
@@ -560,9 +563,10 @@ class BaseAviary(gym.Env):
         
         SPEED_LIMIT = 0.5*self.MAX_SPEED_KMH * (1000/3600)
 
-        ownship_vel = (self.COLLISION_POINT - self.INIT_XYZS[0])/ np.linalg.norm(self.COLLISION_POINT - self.INIT_XYZS[0])
-        intruder_vel = (self.COLLISION_POINT - self.INIT_XYZS[1])/ np.linalg.norm(self.COLLISION_POINT - self.INIT_XYZS[1])
-        
+        ownship_vel = (self.GOAL_XYZ - self.INIT_XYZS[0])/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS[0])
+        #intruder_vel = (self.COLLISION_POINT - self.INIT_XYZS[1])/ np.linalg.norm(self.COLLISION_POINT - self.INIT_XYZS[1])
+        intruder_vel = np.array([[0,0,0],[0,0,0],[0,0,0],[0,0,0]]) # non moving  boy
+
         unit_vector_vxvyvz = np.vstack((ownship_vel,intruder_vel))
 
 
