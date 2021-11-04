@@ -178,6 +178,8 @@ if __name__ == "__main__":
                 tensorboard_log="./td3_drone_tensorboard/",
                 policy_kwargs=policy_kwargs,
                 batch_size = 128,
+                buffer_size = 50000,
+                gamma = 0.99,
                 tau = 0.005,
                 learning_rate = 0.0003,
                 learning_starts = 1000,
@@ -197,10 +199,10 @@ if __name__ == "__main__":
 
 
     #Deeper NN 
-    model = TD3.load("TD3", env=env)
-    #model.learn(total_timesteps=500_000) # Typically not enough
-    #model.save("TD3")
     #model = TD3.load("TD3", env=env)
+    model.learn(total_timesteps=500_000) # Typically not enough
+    model.save("TD3")
+    model = TD3.load("TD3", env=env)
     #model = PPO.load("PPO_discrete", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
