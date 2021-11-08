@@ -108,8 +108,8 @@ class VelocityAviary(BaseAviary):
 
 
 
-        act_lower_bound = np.array([-1, -1])
-        act_upper_bound = np.array([1,  1])
+        act_lower_bound = np.array([-1, -1,-1])
+        act_upper_bound = np.array([1,  1, 1])
         return spaces.Box(low=act_lower_bound,
                           high=act_upper_bound,
                           dtype=np.float32)
@@ -152,9 +152,9 @@ class VelocityAviary(BaseAviary):
         #obs_upper_bound = np.array([ 20.,        20.,   10,        10,   20,        20,     10,        10,   40,           40,  40 ])
 
         #Aouf
-        #observation vector           x         y    doi   doi    doi   doi  D2GX  d2gy 
-        obs_lower_bound = np.array([-80.,     -80.,  -10,  -10,   -10,  -10,  -80, -80])
-        obs_upper_bound = np.array([ 80.,      80.,   80,   80,    80,   80,   80,  80 ])
+        #observation vector           x         y   z          doi   doi    doi   doi  D2GX  d2gy   d2gz
+        obs_lower_bound = np.array([-80.,     -80., -5,       -10,  -10,   -10,  -10,  -80, -80,   -5])
+        obs_upper_bound = np.array([ 80.,      80.,100,        80,   80,    80,   80,   80,  80,    80 ])
 
 
         ############################## doi      turn_upper, turn_lower        
