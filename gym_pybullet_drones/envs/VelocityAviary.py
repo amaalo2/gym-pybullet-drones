@@ -331,6 +331,10 @@ class VelocityAviary(BaseAviary):
 
             #self.target_vel = R_eulerPsi@self.vel[0]
             #print(self.GOAL_XYZ)
+            vx_tar = action[0]*np.cos(action[2])
+            vy_tar = action[0]*np.sin(action[2])
+            action = np.hstack((vx_tar,vy_tar,action[1]))
+            
             self.target_vel = (action/np.linalg.norm(action))*speed_ratio[0]*SPEED_LIMIT 
             action = np.hstack((np.vstack((action/np.linalg.norm(action),intruder_vel)),speed_ratio))
             #print(f"Action : {action/np.linalg.norm(action)*speed_ratio[0]*SPEED_LIMIT}, Target Velocity: {self.target_vel}")
