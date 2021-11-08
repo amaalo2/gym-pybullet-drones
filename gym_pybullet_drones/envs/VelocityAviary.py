@@ -206,13 +206,13 @@ class VelocityAviary(BaseAviary):
         #obs_vector = np.hstack([doi, self.turn_upper, self.turn_lower])
         #return obs_vector.reshape(3)
 
-        doi1 = np.linalg.norm(self.pos[1,0:2]-self.pos[0,0:2]) - self.PROTECTED_RADIUS
-        doi2 = np.linalg.norm(self.pos[2,0:2]-self.pos[0,0:2]) - self.PROTECTED_RADIUS
-        doi3 = np.linalg.norm(self.pos[3,0:2]-self.pos[0,0:2]) - self.PROTECTED_RADIUS
-        doi4 = np.linalg.norm(self.pos[4,0:2]-self.pos[0,0:2]) - self.PROTECTED_RADIUS
+        doi1 = np.linalg.norm(self.pos[1]-self.pos[0]) - self.PROTECTED_RADIUS
+        doi2 = np.linalg.norm(self.pos[2]-self.pos[0]) - self.PROTECTED_RADIUS
+        doi3 = np.linalg.norm(self.pos[3]-self.pos[0]) - self.PROTECTED_RADIUS
+        doi4 = np.linalg.norm(self.pos[4]-self.pos[0]) - self.PROTECTED_RADIUS
 
-        obs_vector = np.hstack([self.pos[0,0:2],doi1,doi2,doi3,doi4, d2g[0:2]])
-        return obs_vector.reshape(8)
+        obs_vector = np.hstack([self.pos[0],doi1,doi2,doi3,doi4, d2g])
+        return obs_vector.reshape(10)
 
         #adjacency_mat = self._getAdjacencyMatrix()
         #return {str(i): {"state": self._getDroneStateVector(i), "neighbors": adjacency_mat[i, :]} for i in range(self.NUM_DRONES)}
@@ -262,7 +262,7 @@ class VelocityAviary(BaseAviary):
         #INIT_VXVYVZ2 = np.hstack((unit_vector_vxvyvz,speed_ratio))
         adjency_mat = self._getAdjacencyMatrix()        
         
-        action = np.hstack((action,0))
+        #action = np.hstack((action,0))
         print(f"Action outside {action} \t current vel {self.vel[0]} \t target vel {self.target_vel} \t Pos {self.pos[0]} \t Goal {self.GOAL_XYZ}")
         '''
         INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
@@ -498,7 +498,7 @@ class VelocityAviary(BaseAviary):
                 
             ## Nabil Aouf paper Explainable Deep Reinforcement Learning for UAV Autonomous Navigation
             C = 0
-            Rgoal = np.linalg.norm(self.last_observation[0:2]-self.GOAL_XYZ[0:2]) - np.linalg.norm(self.pos[0,0:2]-self.GOAL_XYZ[0:2]) - C
+            Rgoal = np.linalg.norm(self.last_observation[0:3]-self.GOAL_XYZ) - np.linalg.norm(self.pos[0]-self.GOAL_XYZ) - C
 
 
             reward  = Rgoal + bGoal # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
@@ -591,7 +591,7 @@ class VelocityAviary(BaseAviary):
         #    return True
 
         #Check for the length of the simulation
-        if self.step_counter/self.SIM_FREQ > 200:
+        if self.step_counter/self.SIM_FREQ > 120:
             print('Times up!')
             self.nTimeout +=1
             return True
