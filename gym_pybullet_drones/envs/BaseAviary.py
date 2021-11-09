@@ -1038,7 +1038,7 @@ class BaseAviary(gym.Env):
 
         """
 
-        self.last_observation = observation
+        self.last_observation = np.hstack((observation,self.vel[0]))
 
     ################################################################################
 

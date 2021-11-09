@@ -507,9 +507,20 @@ class VelocityAviary(BaseAviary):
             Rgoal = np.linalg.norm(self.last_observation[0:3]-self.GOAL_XYZ) - np.linalg.norm(self.pos[0]-self.GOAL_XYZ) - C
 
 
+            #Sharf yaw penalty
 
+            dir_vector = self.GOAL_XYZ[0:2] - self.pos[0,0:2]
+            correct_yaw = np.arctan2(dir_vector[1],dir_vector[0])
 
-            reward  = Rgoal + bGoal # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
+            prev_vel = self.last_observation[10:12]
+            prev_yaw = np.arctan2(prev_vel[1],prev_vel[0])
+
+            current_yaw = np.arctan2(self.vel[0,1],self.vel[0,0])
+
+            yaw_diff = (prev_yaw - correct_yaw) - (current_yaw-correct_yaw)
+            
+
+            reward  = Rgoal + bGoal + yaw_diff # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
 
             #reward =  - 1/doi + bGoal + bGround  # + 1/(d2g*d2g)
             #reward  = forward_bias + goodjob + bInside - 1000/doi + bGround
