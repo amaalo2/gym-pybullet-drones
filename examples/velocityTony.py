@@ -200,8 +200,8 @@ if __name__ == "__main__":
 
     #Deeper NN 
     #model = TD3.load("TD3", env=env)
-    model.learn(total_timesteps=500_000) # Typically not enough
-    model.save("TD3")
+    #model.learn(total_timesteps=500_000) # Typically not enough
+    #model.save("TD3")
     model = TD3.load("TD3", env=env)
     #model = PPO.load("PPO_discrete", env=env)
 

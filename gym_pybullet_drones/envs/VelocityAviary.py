@@ -108,8 +108,8 @@ class VelocityAviary(BaseAviary):
 
 
 
-        act_lower_bound = np.array([-1, -1,-1])
-        act_upper_bound = np.array([1,  1, 1])
+        act_lower_bound = np.array([-1, -1,-np.pi])
+        act_upper_bound = np.array([1,  1, np.pi])
         return spaces.Box(low=act_lower_bound,
                           high=act_upper_bound,
                           dtype=np.float32)
@@ -501,8 +501,12 @@ class VelocityAviary(BaseAviary):
             #    abhik_forward = 0
                 
             ## Nabil Aouf paper Explainable Deep Reinforcement Learning for UAV Autonomous Navigation
+
+            
             C = 0
             Rgoal = np.linalg.norm(self.last_observation[0:3]-self.GOAL_XYZ) - np.linalg.norm(self.pos[0]-self.GOAL_XYZ) - C
+
+
 
 
             reward  = Rgoal + bGoal # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
