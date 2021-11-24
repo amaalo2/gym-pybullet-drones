@@ -131,6 +131,13 @@ class BaseAviary(gym.Env):
         self.GOAL_RADIUS = goal_radius
         self.COLLISION_TIME = collision_time
 
+        #### Evaluation Metrics #################################
+        self.nGoalReached = 0
+        self.nCrash = 0
+        self.nTimeout = 0
+        self.nOutside = 0
+        self.nHitTheGround = 0
+
         #### Load the drone properties from the .urdf file #########
         self.M, \
         self.L, \

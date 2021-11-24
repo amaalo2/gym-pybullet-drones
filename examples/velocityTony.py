@@ -55,7 +55,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Velocity control example using VelocityAviary')
     parser.add_argument('--drone',              default="cf2x",     type=DroneModel,    help='Drone model (default: CF2X)', metavar='', choices=DroneModel)
     parser.add_argument('--num_drones',         default=2,          type=int,           help='Number of Drones used for the simulation', metavar='')
-    parser.add_argument('--gui',                default=True,       type=str2bool,      help='Whether to use PyBullet GUI (default: True)', metavar='')
+    parser.add_argument('--gui',                default=False,       type=str2bool,      help='Whether to use PyBullet GUI (default: True)', metavar='')
     parser.add_argument('--record_video',       default=False,      type=str2bool,      help='Whether to record a video (default: False)', metavar='')
     parser.add_argument('--plot',               default=True,       type=str2bool,      help='Whether to plot the simulation results (default: True)', metavar='')
     parser.add_argument('--user_debug_gui',     default=False,      type=str2bool,      help='Whether to add debug lines and parameters to the GUI (default: False)', metavar='')
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument('--obstacles',          default=False,      type=str2bool,      help='Whether to add obstacles to the environment (default: True)', metavar='')
     parser.add_argument('--simulation_freq_hz', default=240,        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=50,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
+    parser.add_argument('--duration_sec',       default=300,       type=int,         help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
     parser.add_argument('--collision_time',     default=20,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
@@ -193,8 +193,8 @@ if __name__ == "__main__":
                        state = env._getDroneStateVector(int(j)),
                        control= np.zeros(12)
                        )
-        if i%env.SIM_FREQ == 0:
-            env.render()
+        #if i%env.SIM_FREQ == 0:
+            #env.render()
             #print(f"Episode is done: {done}")
         sync(i, start, env.TIMESTEP)
         if done:

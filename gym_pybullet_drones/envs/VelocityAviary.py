@@ -501,7 +501,7 @@ class VelocityAviary(BaseAviary):
             #print(f"TotalReward {reward:.{precision}} \t forward_bias {forward_bias:.{precision}} \t bInside {bInside} \t deviation {deviation:.{precision}}, abhik {abhik:.{precision}}")
             
             #print(f"Reward {reward}, \t d2g {1/d2g} \t 1/doi {1/doi}")
-            print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[0:2]-self.GOAL_XYZ[0:2]) - np.linalg.norm(self.pos[0,0:2]-self.GOAL_XYZ[0:2])}, \t d2g {d2g}")
+            #print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[0:2]-self.GOAL_XYZ[0:2]) - np.linalg.norm(self.pos[0,0:2]-self.GOAL_XYZ[0:2])}, \t d2g {d2g}")
             return reward
         
         else:
@@ -532,24 +532,28 @@ class VelocityAviary(BaseAviary):
                 pass
             elif np.linalg.norm(ownship[0:3]-intruder[0:3])<self.PROTECTED_RADIUS:
                 print('Crash')
+                self.nCrash +=1
                 return True
 
         
         #Check if the ownship is on the ground
         if ownship[2]<0.1:
             print('Hit the ground')
+            self.nHitTheGround += 1
             return True
 
 
         #Check if the ownship is outside the domain
         if np.linalg.norm(ownship[0:3]-self.GOAL_XYZ) > 40:
             print('Outside the domain')
+            self.nOutside += 1
             return True
 
 
         #Check if the ownship reached the goal
         if np.linalg.norm(ownship[0:3]-self.GOAL_XYZ) < 1*self.PROTECTED_RADIUS:
             print('Reached the goal')
+            self.nGoalReached +=1
             return True
 
         dir_vector = (self.GOAL_XYZ-self.INIT_XYZS[0,:])/np.linalg.norm(self.GOAL_XYZ-self.INIT_XYZS[0,:])
@@ -574,6 +578,7 @@ class VelocityAviary(BaseAviary):
         #Check for the length of the simulation
         if self.step_counter/self.SIM_FREQ > 50:
             print('Times up!')
+            self.nTimeout +=1
             return True
         else:
             return False
@@ -594,8 +599,15 @@ class VelocityAviary(BaseAviary):
             Dummy value.
 
         """
-        return {"answer": 42} #### Calculated by the Deep Thought supercomputer in 7.5M years
-
+        totalRuns = (self.nHitTheGround+self.nOutside + self.nCrash + self.nTimeout + self.nGoalReached)
+        info = {"nHitTheGround":self.nHitTheGround, 
+                "nOutside":self.nOutside, 
+                "nCrash":self.nCrash, 
+                "nTimeouts":self.nTimeout, 
+                "nGoalReached":self.nGoalReached,
+                "Total Runs": totalRuns}
+        #return {"answer": 42} #### Calculated by the Deep Thought supercomputer in 7.5M years
+        return info
 ################################################################################
     def collision_detector(self):
 
