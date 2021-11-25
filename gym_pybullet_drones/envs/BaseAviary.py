@@ -563,7 +563,7 @@ class BaseAviary(gym.Env):
         for i in range(self.NUM_DRONES):
             speed_ratio[i] = np.linalg.norm(self.COLLISION_POINT-self.INIT_XYZS[i])/(SPEED_LIMIT*self.COLLISION_TIME)
         
-        self.target_vel = unit_vector_vxvyvz[0]*speed_ratio[0] * SPEED_LIMIT
+        self.target_vel = unit_vector_vxvyvz*speed_ratio * SPEED_LIMIT
         INIT_VXVYVZ = np.hstack((unit_vector_vxvyvz,speed_ratio))
         v_own_init = INIT_VXVYVZ[0,0:3]*speed_ratio[0]*SPEED_LIMIT
         v_int_init = INIT_VXVYVZ[1,0:3]*speed_ratio[1]*SPEED_LIMIT
@@ -634,6 +634,28 @@ class BaseAviary(gym.Env):
         state = np.hstack([self.pos[nth_drone, :], self.quat[nth_drone, :], self.rpy[nth_drone, :],
                            self.vel[nth_drone, :], self.ang_v[nth_drone, :], self.last_clipped_action[nth_drone, :]])
         return state.reshape(20,)
+
+
+#####################################################################################################################
+
+    def _getTargetVelocityControls(self,
+                                nth_drone
+                                ):
+            """Returns the target velocity of the n-th drone.
+
+            Parameters
+            ----------
+            nth_drone : int
+                The ordinal number/position of the desired drone in list self.DRONE_IDS.
+
+            Returns
+            -------
+            ndarray 
+                (3,)-shaped array of floats containing the target velocity of the n-th drone..
+            """
+
+            controls = np.hstack([[0,0,0],self.target_vel[nth_drone,:],[0,0,0,0,0,0]])
+            return controls.reshape(12,)
 
     ################################################################################
 

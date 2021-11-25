@@ -296,7 +296,7 @@ class VelocityAviary(BaseAviary):
 
         #int(adjency_mat[0][1])>0 and self.collision_detector()
 
-        if  np.linalg.norm(self.vel[0]-self.target_vel)<0.01 :
+        if  np.linalg.norm(self.vel[0]-self.target_vel[0])<0.01 :
             
             #heading = np.arccos(np.dot(np.array([1,0,0]),self.vel[0])/np.linalg.norm(self.vel[0]))
             #if heading > np.pi/2:
@@ -316,15 +316,15 @@ class VelocityAviary(BaseAviary):
             [np.sin(eulerPsi),np.cos(eulerPsi),0],
             [0,0,1]])
 
-            self.target_vel = R_eulerPsi@self.vel[0]
+            self.target_vel[0] = R_eulerPsi@self.vel[0]
             #print(self.GOAL_XYZ)
             #print(f"Action : {action}, Target Velocity: {self.target_vel}")
             #self.target_vel = (action/np.linalg.norm(action))*speed_ratio[0]*SPEED_LIMIT 
             #action = np.hstack((np.vstack((action/np.linalg.norm(action),intruder_vel)),speed_ratio))
-            action = np.hstack((np.vstack((self.target_vel/np.linalg.norm(self.target_vel),intruder_vel)),speed_ratio))
+            action = np.hstack((np.vstack((self.target_vel[0]/np.linalg.norm(self.target_vel[0]),intruder_vel)),speed_ratio))
         else:
             try:
-                action = np.hstack((np.vstack((self.target_vel,intruder_vel)),speed_ratio))
+                action = np.hstack((np.vstack((self.target_vel[0],intruder_vel)),speed_ratio))
             except:
                 action = np.hstack((np.vstack((ownship_vel,intruder_vel)),speed_ratio))
 

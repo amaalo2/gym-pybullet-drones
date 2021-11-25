@@ -280,16 +280,19 @@ class Logger(object):
         row = 0
         for j in range(self.NUM_DRONES):
             axs[row, col].plot(t, self.states[j, 3, :], label="drone_"+str(j))
+            axs[row, col].plot(t, self.controls[j, 3, :], label="drone_"+str(j)+"target")
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('vx (m/s)')
         row = 1
         for j in range(self.NUM_DRONES):
             axs[row, col].plot(t, self.states[j, 4, :], label="drone_"+str(j))
+            axs[row, col].plot(t, self.controls[j, 4, :], label="drone_"+str(j)+"target")
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('vy (m/s)')
         row = 2
         for j in range(self.NUM_DRONES):
             axs[row, col].plot(t, self.states[j, 5, :], label="drone_"+str(j))
+            axs[row, col].plot(t, self.controls[j, 5, :], label="drone_"+str(j)+"target")
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('vz (m/s)')
 
