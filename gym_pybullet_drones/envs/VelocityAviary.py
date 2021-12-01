@@ -147,9 +147,9 @@ class VelocityAviary(BaseAviary):
 
         #Hard coded for only 1 er 
 
-        #observation vector           x         y        vx      vy     x_i         y_i    vx_i       vy_i  doi - rpz     D2GX  d2gy 
-        obs_lower_bound = np.array([-20.,       -20.,  -10,       -10,  -20,       -20,    -10,       -10,   -10,         -40, -40])
-        obs_upper_bound = np.array([ 20.,        20.,   10,        10,   20,        20,     10,        10,   40,           40,  40 ])
+        #observation vector           rel x     rel y relz   relvx   rel vy relvz doi - rpz     D2GX  d2gy  d2gz
+        obs_lower_bound = np.array([-40.,       -40., -40,  -20,     -20,  -20,   -10,         -40, -40     ,-40  ])
+        obs_upper_bound = np.array([ 40.,        40., 40,   20,      20,   20,    40,           40,  40    ,  40 ])
 
 
         ############################## doi      turn_upper, turn_lower        
@@ -203,8 +203,8 @@ class VelocityAviary(BaseAviary):
 
         
 
-        obs_vector = np.hstack([self.pos[0,0:2],self.vel[0,0:2],self.pos[1,0:2],self.vel[1,0:2], doi - self.PROTECTED_RADIUS, d2g[0:2]])
-        return obs_vector.reshape(11)
+        obs_vector = np.hstack([self.pos[0]-self.pos[1],self.vel[0]-self.vel[1], doi - self.PROTECTED_RADIUS, d2g])
+        return obs_vector.reshape(10)
 
         #adjacency_mat = self._getAdjacencyMatrix()
         #return {str(i): {"state": self._getDroneStateVector(i), "neighbors": adjacency_mat[i, :]} for i in range(self.NUM_DRONES)}
@@ -485,7 +485,7 @@ class VelocityAviary(BaseAviary):
                 
             ## Nabil Aouf paper Explainable Deep Reinforcement Learning for UAV Autonomous Navigation
             C = 0
-            Rgoal = np.linalg.norm(self.last_observation[0:2]-self.GOAL_XYZ[0:2]) - np.linalg.norm(self.pos[0,0:2]-self.GOAL_XYZ[0:2]) - C
+            Rgoal = np.linalg.norm(self.last_observation[7:10]) - np.linalg.norm(self.pos[0]-self.GOAL_XYZ) - C
 
 
             reward  = Rgoal + bGoal # + deviation  #+ goodjob + 0.1*doi #+ abhik #-2/doi #awards_turn_angle +  bInside + angle_penalty
@@ -501,7 +501,7 @@ class VelocityAviary(BaseAviary):
             #print(f"TotalReward {reward:.{precision}} \t forward_bias {forward_bias:.{precision}} \t bInside {bInside} \t deviation {deviation:.{precision}}, abhik {abhik:.{precision}}")
             
             #print(f"Reward {reward}, \t d2g {1/d2g} \t 1/doi {1/doi}")
-            #print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[0:2]-self.GOAL_XYZ[0:2]) - np.linalg.norm(self.pos[0,0:2]-self.GOAL_XYZ[0:2])}, \t d2g {d2g}")
+            print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[7:10]) - np.linalg.norm(self.pos[0]-self.GOAL_XYZ)}, \t d2g {d2g}")
             return reward
         
         else:
