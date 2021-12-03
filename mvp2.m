@@ -14,7 +14,10 @@ controls = readNPY('controls.npy');
 
 log_freq = 48;  % hz
 
-t = time(1,:);
+%t = time(1,:);
+
+nb_pts = max(size(time));
+t = linspace(0,nb_pts/log_freq,nb_pts);
 
 % states ownship 
 x_o = reshape(states(1,1,:),1,length(t));
@@ -69,7 +72,7 @@ plot(t,x_o,'Linewidth',line_width)
 ylabel('x (m)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -78,7 +81,7 @@ plot(t,y_o,'Linewidth',line_width)
 ylabel('y (m)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -87,7 +90,7 @@ plot(t,z_o,'Linewidth',line_width)
 ylabel('z (m)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -98,7 +101,7 @@ plot(t,vx_target_o,'Linewidth',line_width,'LineStyle','--')
 ylabel('$v_x$ (m/s)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -110,7 +113,7 @@ plot(t,vy_target_o,'Linewidth',line_width,'LineStyle','--')
 ylabel('$v_y$ (m/s)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -122,7 +125,7 @@ ylabel('$v_z$ (m/s)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 grid on
 xlabel( 't (s)','fontsize',font_size,'Interpreter','latex');
-xlim([0,7.5])
+xlim([0,38])
 
 
 lg = legend('Simulation','Desired','NumColumns',2);
@@ -141,7 +144,7 @@ plot(t,roll_o,'Linewidth',line_width)
 ylabel('$\phi$ (rad)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -150,7 +153,7 @@ plot(t,pitch_o,'Linewidth',line_width)
 ylabel('$\theta$ (rad)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -159,7 +162,7 @@ plot(t,yaw_o,'Linewidth',line_width)
 ylabel('$\psi$ (rad)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -168,7 +171,7 @@ plot(t,rolld_o,'Linewidth',line_width)
 ylabel('$\dot{\phi}$ (rad/s)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -178,7 +181,7 @@ plot(t,pitchd_o,'Linewidth',line_width)
 ylabel('$\dot{\theta}$ (rad/s)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 set(gca,'XTick',[])
-xlim([0,7.5])
+xlim([0,38])
 grid on
 
 
@@ -188,7 +191,7 @@ ylabel('$\dot{\psi}$ (rad/s)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 grid on
 xlabel( 't (s)','fontsize',font_size,'Interpreter','latex');
-xlim([0,7.5])
+xlim([0,38])
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%% 
@@ -203,28 +206,28 @@ plot(t,m1_o,'Linewidth',line_width)
 ylabel('M1 (rpm)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 grid on
-xlim([0,7.5])
+xlim([0,38])
 
 nexttile
 plot(t,m2_o,'Linewidth',line_width)
 ylabel('M2 (rpm)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 grid on
-xlim([0,7.5])
+xlim([0,38])
 
 nexttile
 plot(t,m3_o,'Linewidth',line_width)
 ylabel('M3 (rpm)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 grid on
-xlim([0,7.5])
+xlim([0,38])
 
 nexttile
 plot(t,m4_o,'Linewidth',line_width)
 ylabel('M4 (rpm)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 grid on
-xlim([0,7.5])
+xlim([0,38])
 xlabel( 't (s)','fontsize',font_size,'Interpreter','latex');
 
 
@@ -233,13 +236,19 @@ xlabel( 't (s)','fontsize',font_size,'Interpreter','latex');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 d_oi = zeros(1,length(t));
+d_og = zeros(1,length(t));
 turn_angle = zeros(1,length(t));
+
+min_sep = ones(1,length(t)); % its also the goal radius
+
 dir_vector = [1,0,0];
+goal = [9;0;6];
 
 v_o = [vx_o;vy_o;vz_o];
 
 for i = 1 : length(t)
     d_oi(i) = norm(p_o(:,i)-p_i(:,i));
+    d_og(i) = norm(p_o(:,i)-goal);
     v_cur_hat = v_o(:,i)/norm(v_o(:,i));
     n = cross(dir_vector,v_cur_hat);
     
@@ -253,11 +262,23 @@ for i = 1 : length(t)
 end
 
 figure
+hold on
 plot(t,d_oi,'Linewidth',line_width)
+plot(t,min_sep,'Linewidth',line_width)
 ylabel('$d_{oi}$ (m)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 grid on
-xlim([0,7.5])
+xlim([0,38])
+xlabel( 't (s)','fontsize',font_size,'Interpreter','latex');
+
+figure
+hold on
+plot(t,d_og,'Linewidth',line_width)
+plot(t,min_sep,'Linewidth',line_width)
+ylabel('$d_{og}$ (m)','fontsize',font_size,'Interpreter','latex');
+set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
+grid on
+xlim([0,38])
 xlabel( 't (s)','fontsize',font_size,'Interpreter','latex');
 
 figure
@@ -265,5 +286,5 @@ plot(t,turn_angle,'Linewidth',line_width)
 ylabel('Turn Angle (deg)','fontsize',font_size,'Interpreter','latex');
 set(gca,'XMinorGrid','off','GridLineStyle','-','FontSize',line_size)
 grid on
-xlim([0,7.5])
+xlim([0,38])
 xlabel( 't (s)','fontsize',font_size,'Interpreter','latex');
