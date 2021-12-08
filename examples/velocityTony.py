@@ -32,6 +32,9 @@ from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 from gym_pybullet_drones.control.SimplePIDControl import SimplePIDControl
 from gym_pybullet_drones.utils.Logger import Logger
 from gym_pybullet_drones.utils.utils import sync, str2bool
+from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.monitor import Monitor
+
 
 from gym_pybullet_drones.envs.VelocityAviary import VelocityAviary
 
@@ -55,7 +58,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Velocity control example using VelocityAviary')
     parser.add_argument('--drone',              default="cf2x",     type=DroneModel,    help='Drone model (default: CF2X)', metavar='', choices=DroneModel)
     parser.add_argument('--num_drones',         default=2,          type=int,           help='Number of Drones used for the simulation', metavar='')
-    parser.add_argument('--gui',                default=True,       type=str2bool,      help='Whether to use PyBullet GUI (default: True)', metavar='')
+    parser.add_argument('--gui',                default=True,       type=str2bool,     help='Whether to use PyBullet GUI (default: True)', metavar='')
     parser.add_argument('--record_video',       default=False,      type=str2bool,      help='Whether to record a video (default: False)', metavar='')
     parser.add_argument('--plot',               default=True,       type=str2bool,      help='Whether to plot the simulation results (default: True)', metavar='')
     parser.add_argument('--user_debug_gui',     default=False,      type=str2bool,      help='Whether to add debug lines and parameters to the GUI (default: False)', metavar='')
@@ -63,7 +66,7 @@ if __name__ == "__main__":
     parser.add_argument('--obstacles',          default=False,      type=str2bool,      help='Whether to add obstacles to the environment (default: True)', metavar='')
     parser.add_argument('--simulation_freq_hz', default=240,        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=50,       type=int,         help='Duration of the simulation in seconds (default: 5)', metavar='')
+    parser.add_argument('--duration_sec',       default=3600,       type=int,         help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
     parser.add_argument('--collision_time',     default=20,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
@@ -162,11 +165,18 @@ if __name__ == "__main__":
                 exploration_fraction = 0.4
                 )
 
+    #env_eval = Monitor(env, './logs/')
+
+    eval_callback = EvalCallback(env, best_model_save_path='./logs/',
+                             log_path='./logs/', eval_freq=1000,
+                             deterministic=True, render=False)
+
+    
     #Deeper NN 
     #model = DQN.load("DQN", env=env)
-    model.learn(total_timesteps=5000_000) # Typically not enough
-    model.save("DQN")
-    model = DQN.load("DQN", env=env)
+    model.learn(total_timesteps=2_000,callback=eval_callback) # Typically not enough
+    #model.save("DQN")
+    #model = DQN.load("DQN", env=env)
     #model = PPO.load("PPO_discrete", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
@@ -201,6 +211,7 @@ if __name__ == "__main__":
             n_trial+=1
             obs = env.reset()
             print(f"Run # {n_trial}")
+            break
 
     env.close()
     logger.save()
