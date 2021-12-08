@@ -250,6 +250,9 @@ class VelocityAviary(BaseAviary):
         #self.target_vel = unit_vector_vxvyvz[0]*speed_ratio[0]*SPEED_LIMIT 
         INIT_VXVYVZ2 = np.hstack((unit_vector_vxvyvz,speed_ratio))
         adjency_mat = self._getAdjacencyMatrix()        
+
+
+        currentAngleError = np.arccos(np.dot(self.vel[0]/np.linalg.norm(self.vel[0]),self.target_vel[0]/np.linalg.norm(self.target_vel[0]))) * 180/np.pi
         
         '''
         INIT_VXVYVZ = (self.COLLISION_POINT - self.INIT_XYZS)/ np.linalg.norm(self.GOAL_XYZ - self.INIT_XYZS)
@@ -296,8 +299,8 @@ class VelocityAviary(BaseAviary):
 
         #int(adjency_mat[0][1])>0 and self.collision_detector()
 
-        if  np.linalg.norm(self.vel[0]-self.target_vel[0])<0.01 :
-            
+        #if  np.linalg.norm(self.vel[0]-self.target_vel[0])<0.01 :
+        if  np.abs(currentAngleError)<0.01 :   
             #heading = np.arccos(np.dot(np.array([1,0,0]),self.vel[0])/np.linalg.norm(self.vel[0]))
             #if heading > np.pi/2:
             #    heading = -(heading - np.pi/2)
@@ -316,7 +319,8 @@ class VelocityAviary(BaseAviary):
             [np.sin(eulerPsi),np.cos(eulerPsi),0],
             [0,0,1]])
 
-            self.target_vel[0] = R_eulerPsi@self.vel[0]
+            self.target_vel[0] = R_eulerPsi@ self.target_vel[0] #self.vel[0]
+            #self.target_vel[0,2] = 0 #overwriting the z component of the velocity to be always 0
             #print(self.GOAL_XYZ)
             #print(f"Action : {action}, Target Velocity: {self.target_vel}")
             #self.target_vel = (action/np.linalg.norm(action))*speed_ratio[0]*SPEED_LIMIT 
