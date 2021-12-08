@@ -31,8 +31,11 @@ for i = 1 : length(t)
 end
 
 %Find the local mins
-local_mins_doi_idx = islocalmin(d_oi);
-local_mins_d2g_idx = islocalmin(d2g);
+local_mins_doi_idx = islocalmin(d_oi,'MinProminence',4);
+local_mins_d2g_idx = islocalmin(d2g,'MinProminence',4);
+
+
+
 
 
 %Plot the min_doi vs runs
@@ -41,20 +44,22 @@ hold on
 x_axis = linspace(1,length(t(local_mins_doi_idx)),length(t(local_mins_doi_idx)));
 
 y = ones(1,length(x_axis));
-pts = d_oi(local_mins_doi_idx);
+pts_doi = d_oi(local_mins_doi_idx);
 three_sigma_upper = (3*std(d_oi(local_mins_doi_idx))+ mean(d_oi(local_mins_doi_idx)))*y;
 %three_sigma_lower = (3*std(d_oi(local_mins_doi_idx))- mean(d_oi(local_mins_doi_idx)))*y;
 
-scatter(x_axis(pts>=1),pts(pts>=1),'filled','b')
-scatter(x_axis(pts<1),pts(pts<1),'filled','r')
+scatter(x_axis(pts_doi>=1),pts_doi(pts_doi>=1),'filled','b')
+scatter(x_axis(pts_doi<1),pts_doi(pts_doi<1),'filled','r')
 plot(x_axis,mean(d_oi(local_mins_doi_idx))*y, 'LineWidth',2)
 %plot(x_axis,three_sigma_lower, 'LineWidth',2,'Color','k')
 plot(x_axis,three_sigma_upper, 'LineWidth',2,'Color','k')
 
 
 ylabel('$d_{oi}$ (m)','fontsize',15,'Interpreter','latex');
-xlabel('Test Case','fontsize',15,'Interpreter','latex');
-legend('Sucess','Fail','Mean','3$\sigma$ Bound','Interpreter','Latex' )
+xlabel('Test Case \#','fontsize',15,'Interpreter','latex');
+ylim([0,10]);
+xlim([1,length(t(local_mins_doi_idx))])
+legend('Sucess','Fail','Mean','3$\sigma$ Bound','Interpreter','Latex','NumColumns',4 ,'Location','North')
 
 
 %Plot the min_distance vs runs
@@ -66,21 +71,23 @@ x_axis = linspace(1,length(t(local_mins_d2g_idx)),length(t(local_mins_d2g_idx)))
 
 y = ones(1,length(x_axis));
 pts = d2g(local_mins_d2g_idx);
-three_sigma_upper = (3*std(d2g(local_mins_d2g_idx))+ mean(d2g(local_mins_d2g_idx)))*y;
+three_sigma_upper = (3*std(pts(1<pts& pts<5)))+ mean(pts(1<pts& pts<5))*y;
 %three_sigma_lower = (3*std(d2g(local_mins_d2g_idx))- mean(d2g(local_mins_d2g_idx)))*y;
 
-scatter(x_axis(pts>=1),pts(pts>=1),'filled','r')
+scatter(x_axis(pts_doi<1),pts(pts_doi<1),'filled','r')
 scatter(x_axis(1<pts& pts<5),pts(1<pts& pts<5),'filled','k')
 scatter(x_axis(pts<1),pts(pts<1),'filled','b')
-%plot(x_axis,mean(d2g(local_mins_d2g_idx))*y, 'LineWidth',2)
+%plot(x_axis,mean(pts(1<pts& pts<5))*y, 'LineWidth',2,'Color','[0.93,0.69,0.13]')
 %plot(x_axis,three_sigma_lower, 'LineWidth',2,'Color','k')
 %plot(x_axis,three_sigma_upper, 'LineWidth',2,'Color','k')
 
-ylabel('$d_{oi}$ (m)','fontsize',20,'Interpreter','latex');
-xlabel('Test Case','fontsize',20,'Interpreter','latex');
+ylabel('$d_{og}$ (m)','fontsize',15,'Interpreter','latex');
+xlabel('Test Case \#','fontsize',15,'Interpreter','latex');
+ylim([0,11])
+legend('Collisions', 'Timeouts', 'NumColumns',2,'Location','North')
+%xlim([1,length(t(local_mins_doi_idx))])
 
-
-breakyaxis([2,8])
+%breakyaxis([2,8])
 
 
 
