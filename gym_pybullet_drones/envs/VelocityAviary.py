@@ -375,7 +375,7 @@ class VelocityAviary(BaseAviary):
         else:
             bInside = 0
 
-        if np.linalg.norm(self.pos[0]-self.GOAL_XYZ)< (1.5 * self.PROTECTED_RADIUS):
+        if np.linalg.norm(self.pos[0]-self.GOAL_XYZ)< (self.PROTECTED_RADIUS):
             bGoal = 10
         else:
             bGoal = 0
