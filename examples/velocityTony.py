@@ -58,7 +58,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Velocity control example using VelocityAviary')
     parser.add_argument('--drone',              default="cf2x",     type=DroneModel,    help='Drone model (default: CF2X)', metavar='', choices=DroneModel)
     parser.add_argument('--num_drones',         default=2,          type=int,           help='Number of Drones used for the simulation', metavar='')
-    parser.add_argument('--gui',                default=True,       type=str2bool,     help='Whether to use PyBullet GUI (default: True)', metavar='')
+    parser.add_argument('--gui',                default=False,       type=str2bool,     help='Whether to use PyBullet GUI (default: True)', metavar='')
     parser.add_argument('--record_video',       default=False,      type=str2bool,      help='Whether to record a video (default: False)', metavar='')
     parser.add_argument('--plot',               default=True,       type=str2bool,      help='Whether to plot the simulation results (default: True)', metavar='')
     parser.add_argument('--user_debug_gui',     default=False,      type=str2bool,      help='Whether to add debug lines and parameters to the GUI (default: False)', metavar='')
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     parser.add_argument('--obstacles',          default=False,      type=str2bool,      help='Whether to add obstacles to the environment (default: True)', metavar='')
     parser.add_argument('--simulation_freq_hz', default=240,        type=int,           help='Simulation frequency in Hz (default: 240)', metavar='')
     parser.add_argument('--control_freq_hz',    default=48,         type=int,           help='Control frequency in Hz (default: 48)', metavar='')
-    parser.add_argument('--duration_sec',       default=3600,       type=int,         help='Duration of the simulation in seconds (default: 5)', metavar='')
+    parser.add_argument('--duration_sec',       default=50,         type=int,           help='Duration of the simulation in seconds (default: 5)', metavar='')
     parser.add_argument('--goal_radius',        default=0.1,        type=float,         help='Radius of the goal (default: 0.1 m)', metavar='')
     parser.add_argument('--cpu',                default=1,          type=int,           help='Number of CPU cores', metavar='')
     parser.add_argument('--collision_time',     default=20,         type=float,         help='Time for the ownship to reach the collision location', metavar='')
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     elif a == 4:
         x_i = [0,0,16]
     
-    #x_i = rand.uniform(8,15), rand.uniform(-9,9), 6
+    x_i = rand.uniform(8,15), rand.uniform(-9,9), rand.uniform(1,15)
         #COLLISION_POINT
 
     x_o = np.array([-10,0,6]) 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     model = DQN(MlpPolicy,
                 env,
                 verbose=1,
-                tensorboard_log="./dqn_drone_tensorboard/",
+                tensorboard_log="./dqn_drone_tensorboard2/",
                 policy_kwargs=policy_kwargs,
                 exploration_fraction = 0.4
                 )
@@ -174,9 +174,10 @@ if __name__ == "__main__":
     
     #Deeper NN 
     #model = DQN.load("DQN", env=env)
-    model.learn(total_timesteps=2_000,callback=eval_callback) # Typically not enough
-    #model.save("DQN")
+    model.learn(total_timesteps=5_000_000,callback=eval_callback) # Typically not enough
+    model.save("DQN")
     #model = DQN.load("DQN", env=env)
+    model = DQN.load("logs/best_model", env=env)
     #model = PPO.load("PPO_discrete", env=env)
 
     logger = Logger(logging_freq_hz=int(env.SIM_FREQ/env.AGGR_PHY_STEPS),
@@ -211,7 +212,6 @@ if __name__ == "__main__":
             n_trial+=1
             obs = env.reset()
             print(f"Run # {n_trial}")
-            break
 
     env.close()
     logger.save()

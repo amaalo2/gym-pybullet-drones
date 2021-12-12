@@ -505,7 +505,7 @@ class VelocityAviary(BaseAviary):
             #print(f"TotalReward {reward:.{precision}} \t forward_bias {forward_bias:.{precision}} \t bInside {bInside} \t deviation {deviation:.{precision}}, abhik {abhik:.{precision}}")
             
             #print(f"Reward {reward}, \t d2g {1/d2g} \t 1/doi {1/doi}")
-            print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[7:10]) - np.linalg.norm(self.pos[0]-self.GOAL_XYZ)}, \t d2g {d2g}")
+            #print(f"Reward {reward}, \t Rgoal {np.linalg.norm(self.last_observation[7:10]) - np.linalg.norm(self.pos[0]-self.GOAL_XYZ)}, \t d2g {d2g}")
             return reward
         
         else:
